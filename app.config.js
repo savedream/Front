@@ -14,6 +14,10 @@ export default {
     userInterfaceStyle: "light",
     newArchEnabled: true,
 
+    androidStatusBar: {
+      hidden: true,
+    },
+
     ios: {
       supportsTablet: true,
     },

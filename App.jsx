@@ -1,5 +1,7 @@
 import { Text, TextInput } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 
 import RootNavigator from "./src/navigation/RootNavigator";
@@ -23,8 +25,11 @@ export default function App() {
   TextInput.defaultProps.style = { fontFamily: "NotoSansKR-Regular" };
 
   return (
-    <NavigationContainer>
-      <RootNavigator />
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <StatusBar hidden />
+      <NavigationContainer>
+        <RootNavigator />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
