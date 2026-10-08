@@ -4,15 +4,11 @@
     "slug": "SaveDream-Front",
     "version": "1.0.0",
     "orientation": "portrait",
-    //"icon": "./assets/images/icon.png",
     "scheme": "savedreamfront",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      //"icon": ""
-    },
+    "ios": {},
     "web": {
-      "output": "static",
-      //"favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
@@ -20,10 +16,10 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
-          //"image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "reactCompiler": true
