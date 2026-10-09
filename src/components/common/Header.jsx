@@ -85,7 +85,7 @@ export default function Header({ showBack = false }) {
 
           {/* 실제 배터리 잔량 및 아이콘 표시 */}
           <View style={styles.battery}>
-            <Ionicons name={getBatteryIcon()} size={14} color="#1F7A5C" />
+            <Ionicons name={getBatteryIcon()} size={20} color="#1F7A5C" style={styles.batteryIcon}/>
             <Text style={styles.batteryText}>{batteryPercent}%</Text>
           </View>
 
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFCF6",
   },
   container: {
-    height: 80,
+    height: 25,
     paddingHorizontal: 24,
     flexDirection: "row",
     alignItems: "center",
@@ -136,6 +136,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   logo: {
+    height: BUTTON_SIZE,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -143,12 +144,14 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 24,
     height: 24,
+    transform: [{ translateY: -2 }],
   },
   logoSpell: {
     width: 56,
     height: 20,
   },
   battery: {
+    height: 35,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -157,21 +160,26 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#DDF0E8",
   },
+  batteryIcon: {
+    transform: [{ translateY: 1 }],
+  },
   batteryText: {
     fontFamily: "NotoSansKR-SemiBold",
     fontSize: 11,
+    alignItems: "center",
     color: "#1F7A5C",
   },
   dateTime: {
     alignItems: "flex-end",
   },
   dateText: {
-    fontFamily: "NotoSansKR-Regular",
+    fontFamily: "NotoSansKR-SemiBold",
     fontSize: 9,
     color: "#6B7280",
+    textAlign: "center",
   },
   timeText: {
-    fontFamily: "NotoSansKR-Medium",
+    fontFamily: "NotoSansKR-SemiBold",
     fontSize: 18,
     color: "#0B2745",
   },
