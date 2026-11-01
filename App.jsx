@@ -1,10 +1,29 @@
-import { Text, TextInput } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 
 import RootNavigator from "./src/navigation/RootNavigator";
+import { KitProvider, useKit } from "./src/state/KitContext";
+import NoticeBanner from "./src/components/common/NoticeBanner";
+import PowerDialog from "./src/components/common/PowerDialog";
+import { BootScreen, ShutdownScreen } from "./src/components/common/SystemScreens";
+
+function KitRoot() {
+  const { phase } = useKit();
+  if (phase === "booting") return <BootScreen />;
+  if (phase === "shutdown") return <ShutdownScreen />;
+  return (
+    <View style={{ flex: 1 }}>
+      <NavigationContainer>
+        <RootNavigator />
+      </NavigationContainer>
+      <NoticeBanner />
+      <PowerDialog />
+    </View>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -27,9 +46,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar hidden />
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
+      <KitProvider>
+        <KitRoot />
+      </KitProvider>
     </SafeAreaProvider>
   );
 }
