@@ -2,6 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import Header from "./Header";
+import { colors } from "../../theme";
 
 export default function ScreenLayout({ children, showBack = false }) {
   return (
@@ -13,11 +14,6 @@ export default function ScreenLayout({ children, showBack = false }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFCF6",
-  },
-  content: {
-    flex: 1,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.bg },
+  content: { flex: 1 },
 });
