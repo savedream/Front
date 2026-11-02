@@ -33,12 +33,14 @@
 <div align="center">
 
 | <img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/9d0de06d-40bd-45c6-be2a-13bb40d28e4a" /> |
-<img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/d3821e56-3e56-4c9e-87ac-6ae5f97a16cc" /> |
+<img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/de212daf-a6b3-4fe3-90a8-f664fb5af291" />
+ |
 |:---:|:---:|
 | **메인 · 응급 안내 대화** | **말하기 (음성 인식)** |
 
-| <img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/13ba451a-69ed-4071-ab64-c3b7bb9cfac5" /> |
-<img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/e75c00db-d4c0-45a9-9fb8-1aa0a1a8c913" /> |
+| <img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/b4feeaa6-6f0b-442f-adcb-ad6f38b19e0d" />
+|<img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/6a6c4c42-8a6e-40d5-91c1-7d8959956fc8" />
+ |
 |:---:|:---:|
 | **긴급 매뉴얼** | **긴급 매뉴얼 상세 (단계별 안내)** |
 
