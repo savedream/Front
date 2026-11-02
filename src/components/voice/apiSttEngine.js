@@ -1,5 +1,5 @@
-import { KIT_EVENT, subscribeKitEvents } from "../../api/common/events";
-import { speechApi } from "../../api/voice/speechApi";
+import { KIT_EVENT, subscribeKitEvents } from "../../api/kitEvents";
+import { voiceApi } from "../../api/services/voiceApi";
 
 /**
  * 키트 API STT 엔진 (useVoiceSession 의 engine 인터페이스)
@@ -12,7 +12,7 @@ import { speechApi } from "../../api/voice/speechApi";
  *   - speech.state / speech.final 이벤트 data 의 필드 이름 (turn_id, state, text 로 가정)
  *   - 창을 닫을 때 녹음을 취소하는 API 가 명세에 없음 → 지금은 이벤트 구독만 끊는다
  */
-export function createApiSttEngine({ api = speechApi, subscribe = subscribeKitEvents } = {}) {
+export function createApiSttEngine({ api = voiceApi, subscribe = subscribeKitEvents } = {}) {
   let unsubscribers = [];
   let turnId = null;
   let active = false;

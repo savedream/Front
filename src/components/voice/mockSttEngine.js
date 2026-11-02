@@ -1,4 +1,4 @@
-import { STT_MOCK_SCRIPTS, STT_MOCK_TIMING } from "../../mock/sttMockData";
+import { STT_MOCK_SCRIPTS, STT_MOCK_TIMING } from "../../mocks/sttMockData";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

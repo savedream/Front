@@ -1,5 +1,5 @@
-import { KIT_API_CONFIG } from "./config";
-import { KIT_ERROR_CODE, KitApiError } from "./errors";
+import { KIT_API_CONFIG } from "./kitConfig";
+import { KIT_ERROR_CODE, KitApiError } from "./kitErrors";
 
 /**
  * 키트 REST 요청

@@ -1,4 +1,4 @@
-import { kitRequest } from "../common/client";
+import { kitRequest } from "../kitClient";
 
 /**
  * 말하기·안내 API (Notion "API 명세서" · 말하기·안내 그룹)
@@ -25,7 +25,7 @@ export const SPEECH_STATE = {
 
 const toTurn = (data) => ({ turnId: data.turn_id ?? null, state: data.state ?? null });
 
-export const speechApi = {
+export const voiceApi = {
   /** 말하기 버튼으로 녹음 시작 → 새 턴. 409 AUDIO_BUSY / 503 MIC_UNAVAILABLE */
   startSpeech: async () => toTurn(await kitRequest("POST", "/speech/start")),
 

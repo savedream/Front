@@ -1,5 +1,5 @@
-import { kitRequest } from "../common/client";
-import { toKitAssetUrl } from "../common/config";
+import { kitRequest } from "../kitClient";
+import { toKitAssetUrl } from "../kitConfig";
 
 /**
  * 매뉴얼 API (Notion "API 명세서" · 매뉴얼 그룹)

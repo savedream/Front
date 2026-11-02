@@ -4,7 +4,7 @@
  *   GET /api/manuals            → 목록: 아래 항목에서 view_steps 를 뺀 값
  *   GET /api/manuals/{manual_id} → 보기용 카드: 아래 항목 그대로 (없으면 404 MANUAL_NOT_FOUND)
  *
- * .env 의 EXPO_PUBLIC_USE_MOCK=true 일 때 사용한다. 실제 API 와 같은 변환 함수(api/manual/manualApi.js)를 거친다.
+ * .env 의 EXPO_PUBLIC_USE_MOCK=true 일 때 사용한다. 실제 API 와 같은 변환 함수(api/services/manualApi.js)를 거친다.
  *
  * ⚠ 목데이터 기준
  * - 응급처치 문구·그림은 기존 화면에 쓰던 내용 그대로다.
