@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { KIT_API_CONFIG } from "../../api/common/config";
-import { KIT_ERROR_CODE, KitApiError } from "../../api/common/errors";
-import { manualApi, toManualDetail, toManualSummary } from "../../api/manual/manualApi";
-import { MANUAL_MOCK_DB } from "../../mock/manualMockData";
+import { KIT_API_CONFIG } from "../../api/kitConfig";
+import { KIT_ERROR_CODE, KitApiError } from "../../api/kitErrors";
+import { manualApi, toManualDetail, toManualSummary } from "../../api/services/manualApi";
+import { MANUAL_MOCK_DB } from "../../mocks/manualMockData";
 import { getManualTheme } from "./manualTheme";
 
 /**
  * 매뉴얼 데이터 불러오기 (목록 · 보기용 카드)
  *
- * - .env EXPO_PUBLIC_USE_MOCK=true  → mock/manualMockData.js (서버 응답 형식) 를 API 와 같은 변환 함수로 읽는다
+ * - .env EXPO_PUBLIC_USE_MOCK=true  → mocks/manualMockData.js (서버 응답 형식) 를 API 와 같은 변환 함수로 읽는다
  * - .env EXPO_PUBLIC_USE_MOCK=false → GET /api/manuals, GET /api/manuals/{manual_id}
  * - 명세: 목록은 바뀌지 않으므로 한 번만 불러 캐시한다. (보기용 카드도 같은 방식으로 캐시)
  *

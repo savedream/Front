@@ -1,4 +1,4 @@
-import { KIT_API_CONFIG } from "./config";
+import { KIT_API_CONFIG } from "./kitConfig";
 
 /**
  * 키트 이벤트 스트림 (SSE): GET /api/events

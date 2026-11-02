@@ -13,4 +13,7 @@ export { getVoiceModalText } from "./voiceModalText";
 export { createSttEngine, STT_CONFIG } from "./sttEngine";
 export { createApiSttEngine } from "./apiSttEngine";
 export { createMockSttEngine } from "./mockSttEngine";
-export { STT_MOCK_SCRIPTS, STT_MOCK_TIMING } from "../../mock/sttMockData";
+export { STT_MOCK_SCRIPTS, STT_MOCK_TIMING } from "../../mocks/sttMockData";
+export { default as VoiceInputModal } from "./VoiceInputModal";
+export { createAssistantEngine, createMockAssistantEngine } from "./assistantEngine";
+export { useAssistantReplies } from "./useAssistantReplies";

@@ -1,6 +1,6 @@
 /**
  * 말하기 화면 상태 · 오류 정의 (useVoiceSession · VoiceModal 공용)
- * 상태 값은 키트 API 의 speech.state 이름과 맞춘다. 오류 코드는 api/common/errors.js 의 KIT_ERROR_CODE.
+ * 상태 값은 키트 API 의 speech.state 이름과 맞춘다. 오류 코드는 api/kitErrors.js 의 KIT_ERROR_CODE.
  */
 
 // 화면 상태 (값은 API 의 speech.state 이름과 맞춤)
@@ -64,7 +64,7 @@ export const VOICE_ERROR_MESSAGES = {
   },
 };
 
-// 키트 API 오류 코드 → 화면 오류 종류 (api/common/errors.js KIT_ERROR_CODE)
+// 키트 API 오류 코드 → 화면 오류 종류 (api/kitErrors.js KIT_ERROR_CODE)
 const CODE_TO_VOICE_ERROR = {
   MIC_UNAVAILABLE: VOICE_ERROR.MIC_UNAVAILABLE,
   AUDIO_BUSY: VOICE_ERROR.BUSY,

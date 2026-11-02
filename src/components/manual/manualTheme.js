@@ -1,7 +1,7 @@
 /**
  * 매뉴얼 화면 테마 (서버가 주지 않는 화면 전용 정보: 아이콘 · 색 · 화살표 위치 · 검수 상태)
  *
- * 서버(manual_id·이름·요약·카드)는 api/manual, 목데이터는 mock/manualMockData.js 에 있다.
+ * 서버(manual_id·이름·요약·카드)는 api/services/manualApi.js, 목데이터는 mocks/manualMockData.js 에 있다.
  * 테마는 매뉴얼 "이름"으로 찾는다 → 실제 서버 manual_id("EM-01" 등)로 바뀌어도 그대로 적용된다.
  * 테마가 없는 매뉴얼(서버 DB 16개 중 나머지)은 DEFAULT_THEME 를 쓴다.
  */
