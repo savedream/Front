@@ -1,6 +1,6 @@
 # [살려드림] - Frontend
 
-> 응급안내키트 프론트엔드 (아이패드 화면)  
+> 응급안내키트 프론트엔드 
 > 통신이 안 되는 곳에서 응급 처치를 음성으로 안내하는 온디바이스 키트
 
 ---
@@ -22,7 +22,6 @@
 | 화면 이동 | React Navigation 7 (native-stack) |
 | 아이콘·폰트 | @expo/vector-icons, expo-font (Noto Sans KR) |
 | API 통신 | REST API (fetch), SSE (XMLHttpRequest) |
-| 설정 | `.env` (`EXPO_PUBLIC_` 환경변수) |
 | 실행 환경 | iPad 가로 화면 (iOS) · Android · Web |
 
 ---
