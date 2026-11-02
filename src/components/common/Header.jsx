@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const BUTTON_SIZE = 48;
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-export default function Header({ showBack = false }) {
+export default function Header({ showBack = false, backgroundColor }) {
   const navigation = useNavigation();
   const canShowBack = showBack && navigation.canGoBack();
 
@@ -52,7 +52,10 @@ export default function Header({ showBack = false }) {
   const formattedTime = `${hours}:${minutes}:${seconds}`;
 
   return (
-    <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+    <SafeAreaView
+      edges={["top", "left", "right"]}
+      style={[styles.safeArea, backgroundColor && { backgroundColor }]}
+    >
       <View style={styles.container}>
         {/* 왼쪽: 뒤로가기 슬롯 (버튼이 없어도 자리는 유지) */}
         <View style={styles.leftSlot}>
