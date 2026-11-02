@@ -6,7 +6,7 @@ import { http } from "../client";
  * POST /devices/:id/reconnect    → Device
  *
  * Device = { id, name, connected, operational, status: "ok"|"error"|"unknown", detail }
- * id: gps | mic | speaker | buzzer | aiModel | manualData
+ * id: gps | mic | speaker | aiModel | manualData
  */
 export const devicesApi = {
   list: () => http.get("/devices"),

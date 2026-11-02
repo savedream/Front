@@ -4,11 +4,11 @@
  * 실제 백엔드와 같은 REST 경로를 받아 메모리 상태로 응답한다.
  * - 응답 지연(150~450ms)을 넣어 "처리 중" 표시를 확인할 수 있다.
  * - /__mock/* 로 장치 끊김, 저장 실패, 응답 시간 초과를 재현할 수 있다.
+ *
+ * 말하기(STT·발화 해석·음성 안내)와 긴급 매뉴얼 API 는 담당 팀원 파트라 여기에 없다.
+ * 해당 파트의 목 응답이 필요하면 아래 route(...) 형식으로 같은 파일에 추가하면 된다.
  */
 import { ApiError } from "../api/errors";
-import { MANUALS, toSummary } from "./data/manuals";
-import { STT_SCRIPTS } from "./data/sttScripts";
-import { ASSISTANT_RULES, FALLBACK_REPLY } from "./data/assistantRules";
 
 class MockHttpError extends Error {
   constructor(status, code, message) {
@@ -23,11 +23,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const latency = () => 150 + Math.random() * 300;
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
+// 장치 메타데이터. 장치를 추가/삭제하려면 여기와 screens/DeviceStatusScreen.jsx 의 ORDER 등을 함께 수정한다.
+// (2026-11-02 부저 제외)
 const DEVICE_META = {
   gps: { name: "GPS", requiredFor: ["현재 위치 좌표"] },
   mic: { name: "마이크", requiredFor: ["음성 입력", "말하기"] },
   speaker: { name: "스피커", requiredFor: ["음성 안내", "메트로놈"] },
-  buzzer: { name: "부저", requiredFor: ["구조신호"] },
   aiModel: { name: "AI 응급 모델", requiredFor: ["음성 상황 해석"] },
   manualData: { name: "매뉴얼 데이터", requiredFor: ["응급 매뉴얼"] },
 };
@@ -44,7 +45,6 @@ function createDb() {
       gps: { connected: true, changedAt: t },
       mic: { connected: true, changedAt: t },
       speaker: { connected: true, changedAt: t, volume: 78 },
-      buzzer: { connected: true, changedAt: t },
       aiModel: { connected: true, changedAt: t, lastVerifiedAt: t - 3 * 86400000 },
       manualData: { connected: true, changedAt: t, sizeLabel: "128MB", version: "1.0" },
     },
@@ -53,9 +53,7 @@ function createDb() {
     timer: { status: "idle", startedAt: null, accumulatedMs: 0, segments: [] },
     metronome: { playing: false, bpm: 110, interrupted: false, unknown: false },
     rescue: { playing: false, interrupted: false, unknown: false },
-    guidanceUntil: 0,
     listening: true,
-    stt: { sessions: {}, scriptIndex: 0, seq: 0 },
     logs: [],
     config: { saveFailure: false, slowFeature: null },
   };
@@ -91,9 +89,6 @@ function deviceView(id) {
     case "speaker":
       detail = d.connected ? `음성 안내 볼륨 ${d.volume}%` : "스피커 연결 확인 필요";
       break;
-    case "buzzer":
-      detail = d.connected ? "구조신호 출력 준비됨" : "부저 연결 확인 필요";
-      break;
     case "aiModel": {
       const days = Math.round((now() - d.lastVerifiedAt) / 86400000);
       detail = d.connected ? `마지막 검증 ${days}일 전` : "모델 확인 불가";
@@ -128,9 +123,6 @@ function setDeviceConnected(id, connected) {
     db.metronome.playing = false;
     db.metronome.interrupted = true; // 출력 중단 · 연결 오류
   }
-  if (id === "buzzer" && !connected && db.rescue.playing) {
-    db.rescue.unknown = true; // 연결 오류 · 출력 상태 확인 불가
-  }
   if (id === "gps") {
     if (!connected) {
       const g = gpsView(true);
@@ -141,11 +133,6 @@ function setDeviceConnected(id, connected) {
   }
   // 재연결: 메트로놈·구조신호는 자동 재생하지 않는다
   if (connected && id === "speaker") db.metronome.interrupted = false;
-  if (connected && id === "buzzer" && db.rescue.unknown) {
-    db.rescue.unknown = false;
-    db.rescue.playing = false;
-    db.rescue.interrupted = true;
-  }
 }
 
 /* ---------------------------------------------------------------- GPS */
@@ -186,7 +173,8 @@ function batteryView() {
 
 /* ---------------------------------------------------------------- 소리 기능 */
 
-const guidanceActive = () => now() < db.guidanceUntil;
+// pausedBy: 음성 안내(TTS) 중 임시중단 상태. 말하기 파트에서 TTS 를 붙이면 채운다.
+const guidanceActive = () => false;
 
 function metronomeView() {
   const m = db.metronome;
@@ -238,18 +226,6 @@ function saveLogs(entries) {
   return { savedIds: ids };
 }
 
-/* ---------------------------------------------------------------- STT */
-
-function sttSessionView(s) {
-  const words = s.text.split(" ");
-  const shown = Math.min(words.length, Math.floor((now() - s.startedAt - 600) / 320) + 1);
-  if (shown <= 0) return { status: "listening", partial: "" };
-  return {
-    status: shown >= words.length ? "ready" : "listening",
-    partial: words.slice(0, shown).join(" "),
-  };
-}
-
 /* ---------------------------------------------------------------- 라우터 */
 
 const routes = [];
@@ -265,7 +241,6 @@ const route = (method, pattern, handler) => {
 route("POST", "/system/boot", async () => {
   await sleep(900);
   return {
-    manualsLoaded: MANUALS.length,
     logsLoaded: db.logs.length,
     devices: Object.keys(db.devices).map(deviceView),
     battery: batteryView(),
@@ -357,83 +332,13 @@ route("POST", "/metronome/stop", async () => {
 route("GET", "/rescue-signal", () => rescueView());
 route("POST", "/rescue-signal/start", async () => {
   await maybeSlow("rescue");
-  if (!isConnected("buzzer")) throw new MockHttpError(409, "DEVICE_UNAVAILABLE", "부저 연결을 확인해주세요.");
   db.rescue = { playing: true, interrupted: false, unknown: false };
   return rescueView();
 });
 route("POST", "/rescue-signal/stop", async () => {
   await maybeSlow("rescue");
-  if (!isConnected("buzzer")) throw new MockHttpError(409, "DEVICE_UNAVAILABLE", "부저가 응답하지 않아 정지를 확인할 수 없어요.");
   db.rescue = { playing: false, interrupted: false, unknown: false };
   return rescueView();
-});
-
-// 음성
-route("GET", "/voice/listening", () => ({ enabled: db.listening, micAvailable: isConnected("mic") }));
-route("PUT", "/voice/listening", (_, body) => {
-  if (body.enabled && !isConnected("mic")) {
-    throw new MockHttpError(409, "DEVICE_UNAVAILABLE", "마이크 연결을 확인해주세요.");
-  }
-  db.listening = !!body.enabled;
-  return { enabled: db.listening, micAvailable: isConnected("mic") };
-});
-route("POST", "/stt/sessions", () => {
-  if (!isConnected("mic")) throw new MockHttpError(409, "DEVICE_UNAVAILABLE", "마이크 연결을 확인해주세요.");
-  const id = `stt_${++db.stt.seq}`;
-  const text = STT_SCRIPTS[db.stt.scriptIndex % STT_SCRIPTS.length];
-  db.stt.scriptIndex += 1;
-  db.stt.sessions[id] = { id, text, startedAt: now(), finalized: false };
-  return { sessionId: id };
-});
-route("GET", "/stt/sessions/:id", ({ id }) => {
-  const s = db.stt.sessions[id];
-  if (!s) throw new MockHttpError(404, "NOT_FOUND", "음성 세션이 없어요.");
-  if (!isConnected("mic")) throw new MockHttpError(409, "DEVICE_UNAVAILABLE", "마이크 연결이 끊겼어요.");
-  return sttSessionView(s);
-});
-route("POST", "/stt/sessions/:id/finalize", ({ id }) => {
-  const s = db.stt.sessions[id];
-  if (!s) throw new MockHttpError(404, "NOT_FOUND", "음성 세션이 없어요.");
-  if (s.finalized) throw new MockHttpError(409, "ALREADY_FINALIZED", "이미 전달된 문장이에요.");
-  const { partial } = sttSessionView(s);
-  if (!partial.trim()) throw new MockHttpError(422, "EMPTY_TRANSCRIPT", "인식된 문장이 없어요.");
-  s.finalized = true;
-  return { text: partial };
-});
-route("DELETE", "/stt/sessions/:id", ({ id }) => {
-  delete db.stt.sessions[id];
-  return { ok: true };
-});
-route("POST", "/assistant/messages", async (_, body) => {
-  await sleep(500);
-  const text = String(body.text ?? "");
-  if (!isConnected("aiModel")) {
-    return {
-      intent: { type: "unclear" },
-      reply: { title: "AI 응급 모델을 사용할 수 없어요.", body: "매뉴얼 목록에서 상황을 직접 선택해주세요.", actions: [{ type: "openManualList", label: "매뉴얼 목록 보기" }] },
-    };
-  }
-  const rule = ASSISTANT_RULES.find((r) => r.test(text));
-  return clone(rule ? rule.build(text) : FALLBACK_REPLY);
-});
-route("POST", "/tts/speak", (_, body) => {
-  if (!isConnected("speaker")) throw new MockHttpError(409, "DEVICE_UNAVAILABLE", "스피커 연결을 확인해주세요.");
-  const durationMs = Math.min(6000, 1200 + String(body.text ?? "").length * 70);
-  // 공통 ④: 응급 안내 중 메트로놈·구조신호 임시중단 → 안내 후 자동 재개
-  db.guidanceUntil = now() + durationMs;
-  return { durationMs };
-});
-
-// 매뉴얼
-route("GET", "/manuals", () => {
-  if (!isConnected("manualData")) throw new MockHttpError(503, "DEVICE_UNAVAILABLE", "매뉴얼 데이터를 읽을 수 없어요.");
-  return { manuals: MANUALS.map(toSummary) };
-});
-route("GET", "/manuals/:id", ({ id }) => {
-  if (!isConnected("manualData")) throw new MockHttpError(503, "DEVICE_UNAVAILABLE", "매뉴얼 데이터를 읽을 수 없어요.");
-  const m = MANUALS.find((x) => x.id === id);
-  if (!m) throw new MockHttpError(404, "NOT_FOUND", "매뉴얼을 찾을 수 없어요.");
-  return clone(m);
 });
 
 // 기록

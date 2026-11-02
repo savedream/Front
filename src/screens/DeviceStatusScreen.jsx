@@ -6,12 +6,12 @@ import { devicesApi, mockControlApi } from "../api";
 import { useKit } from "../state/KitContext";
 import { colors, fonts, s, shadow } from "../theme";
 
-const ORDER = ["gps", "mic", "speaker", "buzzer", "aiModel", "manualData"];
+// 장치 추가/삭제: 여기 ORDER·ICON·okLabel·names 와 mocks/mockServer.js 의 DEVICE_META (부저 2026-11-02 제외)
+const ORDER = ["gps", "mic", "speaker", "aiModel", "manualData"];
 const ICON = {
   gps: "location-outline",
   mic: "mic-outline",
   speaker: "volume-medium-outline",
-  buzzer: "megaphone-outline",
   aiModel: "shield-checkmark-outline",
   manualData: "cloud-offline-outline",
   battery: "battery-half-outline",
@@ -129,7 +129,7 @@ function DeviceRow({ device, busy, onReconnect }) {
   );
 }
 
-const okLabel = (id) => ({ gps: "연결됨", mic: "정상", speaker: "정상", buzzer: "정상", aiModel: "사용 가능", manualData: "최신" })[id] ?? "정상";
+const okLabel = (id) => ({ gps: "연결됨", mic: "정상", speaker: "정상", aiModel: "사용 가능", manualData: "최신" })[id] ?? "정상";
 
 /** 시연용: 장치 끊김 · 저장 실패 · 응답 지연을 재현 (USE_MOCK=true 에서만 보임) */
 function MockPanel({ onChanged }) {
@@ -152,7 +152,7 @@ function MockPanel({ onChanged }) {
     onChanged();
   };
 
-  const names = { gps: "GPS", mic: "마이크", speaker: "스피커", buzzer: "부저", aiModel: "AI 모델", manualData: "매뉴얼 데이터" };
+  const names = { gps: "GPS", mic: "마이크", speaker: "스피커", aiModel: "AI 모델", manualData: "매뉴얼 데이터" };
 
   return (
     <View style={styles.mock}>

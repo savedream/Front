@@ -13,13 +13,11 @@ import {
   devicesApi,
   gpsApi,
   logsApi,
-  manualApi,
   metronomeApi,
   mockControlApi,
   rescueSignalApi,
   systemApi,
   timerApi,
-  voiceApi,
 } from "../api";
 import { josa } from "../utils/josa";
 
@@ -27,6 +25,9 @@ import { josa } from "../utils/josa";
  * 살려드림 전역 상태
  * - 화면 이동과 무관하게 타이머·장치 감시·대화 기록을 유지한다 (공통 ②).
  * - 모든 기능 실행은 runFeature 하나를 거친다 (공통 ①: 버튼과 음성 명령이 같은 흐름).
+ *
+ * 말하기·긴급 매뉴얼 파트는 runFeature / addLog / showNotice 로 연결한다 (src/COLLABORATION.md).
+ * 부저는 2026-11-02 범위에서 제외.
  */
 
 const KitContext = createContext(null);
@@ -36,7 +37,6 @@ const DEVICE_LABEL = {
   gps: "GPS",
   mic: "마이크",
   speaker: "스피커",
-  buzzer: "부저",
   aiModel: "AI 응급 모델",
   manualData: "매뉴얼 데이터",
 };
@@ -61,23 +61,18 @@ export function KitProvider({ children }) {
   const [clockOffset, setClockOffset] = useState(0); // serverTime - Date.now()
   const [metronome, setMetronome] = useState({ ...INITIAL_SOUND, bpm: 110 });
   const [rescue, setRescue] = useState(INITIAL_SOUND);
-  const [listening, setListeningState] = useState({ enabled: true, micAvailable: true });
-  const [speaking, setSpeaking] = useState(false);
 
   const [busy, setBusy] = useState({});
   const [featureError, setFeatureError] = useState({});
   const [logs, setLogs] = useState([]);
-  const [manuals, setManuals] = useState([]);
-  const [manualsError, setManualsError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [powerDialog, setPowerDialog] = useState(null); // null | confirm | saving | failed | stopping
 
   // 비동기 흐름에서 최신 상태를 읽기 위한 ref
   const ref = useRef({});
-  ref.current = { timer, metronome, rescue, devices, listening, logs, phase };
+  ref.current = { timer, metronome, rescue, devices, logs, phase };
   const busyRef = useRef({});
   const noticeTimer = useRef(null);
-  const speakTimer = useRef(null);
 
   /* ------------------------------------------------------------ 알림 */
   const showNotice = useCallback((text, tone = "info") => {
@@ -117,20 +112,6 @@ export function KitProvider({ children }) {
     return Promise.resolve(true);
   }, [persist]);
 
-  /* ------------------------------------------------------------ 음성 안내 (공통 ④) */
-  const speak = useCallback(async (text) => {
-    if (!text) return;
-    try {
-      const { durationMs } = await voiceApi.speak(text);
-      clearTimeout(speakTimer.current);
-      setSpeaking(true);
-      speakTimer.current = setTimeout(() => setSpeaking(false), durationMs);
-    } catch (e) {
-      // 스피커 불가 → 글 안내만 유지
-      setSpeaking(false);
-    }
-  }, []);
-
   /* ------------------------------------------------------------ 상태 감시 */
   const applyDevices = useCallback(
     (list) => {
@@ -146,8 +127,7 @@ export function KitProvider({ children }) {
             showNotice(`${name} 연결이 끊겼어요. ${affected} 기능이 제한돼요.`, "error");
             addLog({ kind: "system", text: `${name} 연결 끊김 · ${affected} 사용 제한` });
           } else {
-            const extra =
-              d.id === "speaker" || d.id === "buzzer" ? " 필요하면 다시 켜주세요." : "";
+            const extra = d.id === "speaker" ? " 필요하면 다시 켜주세요." : "";
             showNotice(`${josa(name, "이", "가")} 다시 연결됐어요.${extra}`, "success");
             addLog({ kind: "system", text: `${name} 연결 복구` });
           }
@@ -174,7 +154,6 @@ export function KitProvider({ children }) {
             setGpsError(false);
           })
           .catch(() => setGpsError(true)),
-        voiceApi.getListening().then(setListeningState),
       ];
       if (!busyRef.current.metronome) jobs.push(metronomeApi.get().then(setMetronome));
       if (!busyRef.current.rescue) jobs.push(rescueSignalApi.get().then(setRescue));
@@ -211,31 +190,17 @@ export function KitProvider({ children }) {
     setPhase("booting");
     setBootStep("시스템 초기화");
     try {
-      setBootStep("저장된 매뉴얼과 기록 불러오기");
-      const [bootRes, manualRes, logRes] = await Promise.all([
+      setBootStep("저장된 기록 불러오기");
+      const [bootRes, logRes] = await Promise.all([
         systemApi.boot(),
-        manualApi.list().catch((e) => {
-          setManualsError(e.message);
-          return { manuals: [] };
-        }),
         logsApi.list().catch(() => ({ entries: [] })),
       ]);
-      setManuals(manualRes.manuals);
       setLogs(logRes.entries.map((e) => ({ ...e, saved: true })));
       setBootStep("배터리와 외부장치 확인");
       setDevices(Object.fromEntries(bootRes.devices.map((d) => [d.id, d])));
       setBattery(bootRes.battery);
-      const [t, l] = await Promise.all([timerApi.get(), voiceApi.getListening()]);
-      syncTimer(t);
-      setListeningState(l);
+      syncTimer(await timerApi.get());
       setPhase("ready");
-      if (!logRes.entries.length) {
-        addLog({
-          kind: "device_guidance",
-          title: "어떤 상황인지 말씀해주세요.",
-          text: "화면을 보지 않아도 괜찮아요. 제가 듣고 안내할게요.",
-        });
-      }
     } catch (e) {
       setBootStep(`초기화 실패: ${e.message}`);
     }
@@ -244,16 +209,6 @@ export function KitProvider({ children }) {
   useEffect(() => {
     boot();
   }, [boot]);
-
-  const reloadManuals = useCallback(async () => {
-    try {
-      const r = await manualApi.list();
-      setManuals(r.manuals);
-      setManualsError(null);
-    } catch (e) {
-      setManualsError(e.message);
-    }
-  }, []);
 
   /* ------------------------------------------------------------ 기능 실행 (공통 ①) */
   const FEATURES = useMemo(
@@ -271,7 +226,7 @@ export function KitProvider({ children }) {
       },
       rescue: {
         label: "구조신호",
-        device: "buzzer",
+        device: null, // 부저 제외(2026-11-02). 출력 장치가 정해지면 장치 id 를 넣는다.
         isOn: () => ref.current.rescue.playing,
         on: rescueSignalApi.start,
         off: rescueSignalApi.stop,
@@ -380,44 +335,6 @@ export function KitProvider({ children }) {
     }
   }, [addLog, showNotice, syncTimer]);
 
-  /* ------------------------------------------------------------ 음성 / 대화 (기능 ④) */
-  const setListening = useCallback(
-    async (enabled) => {
-      try {
-        const r = await voiceApi.setListening(enabled);
-        setListeningState(r);
-      } catch (e) {
-        showNotice(e.message, "error");
-      }
-    },
-    [showNotice]
-  );
-
-  const sendUtterance = useCallback(
-    async (text, kind = "user_speech") => {
-      const trimmed = text?.trim();
-      if (!trimmed) return;
-      addLog({ kind, text: trimmed });
-      try {
-        const { intent, reply } = await voiceApi.sendMessage(trimmed);
-        addLog({
-          kind: "device_guidance",
-          title: reply.title,
-          text: reply.body,
-          actions: reply.actions,
-          meta: { intent },
-        });
-        speak([reply.title, reply.body].filter(Boolean).join(" "));
-        if (intent?.type === "command") {
-          await runFeature(intent.feature, intent.action, "voice");
-        }
-      } catch (e) {
-        addLog({ kind: "system", text: `안내를 만들지 못했어요 · ${e.message}` });
-      }
-    },
-    [addLog, runFeature, speak]
-  );
-
   /* ------------------------------------------------------------ 전원 (기능 ①, 공통 ⑥) */
   const requestPower = useCallback(() => setPowerDialog("confirm"), []);
   const cancelPower = useCallback(() => setPowerDialog(null), []);
@@ -472,24 +389,17 @@ export function KitProvider({ children }) {
     clockOffset,
     metronome,
     rescue,
-    listening,
-    speaking,
     busy,
     featureError,
     logs,
-    manuals,
-    manualsError,
     notice,
     powerDialog,
-    // actions
+    // actions (다른 파트 연결용: runFeature, addLog, showNotice)
     runFeature,
     resetTimer,
-    setListening,
-    sendUtterance,
     addLog,
     retryUnsaved,
     refreshAll,
-    reloadManuals,
     showNotice,
     requestPower,
     cancelPower,

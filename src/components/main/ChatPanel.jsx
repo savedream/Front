@@ -10,9 +10,14 @@ import { colors, fonts, s, shadow } from "../../theme";
  * - 사용자 발화(user_speech), 버튼 응답(user_report), 기기 안내(device_guidance),
  *   실행 결과(device_result), 시스템(system)을 구분해 시각과 함께 표시한다.
  * - 저장 실패 기록은 "저장 실패 · 다시 시도"로 표시하고 미저장 상태를 유지한다.
+ *
+ * props
+ *   onOpenDevices(): void   "기기 상태" 버튼
+ *   onAction(action): void  기기 안내 말풍선의 버튼 (openManual / reply 등, MainScreen 에서 처리)
+ *   footer: ReactNode       하단 입력/마이크 상태 영역 슬롯 (말하기 파트에서 채움)
  */
-export default function ChatPanel({ onOpenDevices, onOpenManual, onOpenManualList }) {
-  const { logs, listening, setListening, devices, speaking, sendUtterance, retryUnsaved } = useKit();
+export default function ChatPanel({ onOpenDevices, onAction, footer = null }) {
+  const { logs, retryUnsaved } = useKit();
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -22,24 +27,6 @@ export default function ChatPanel({ onOpenDevices, onOpenManual, onOpenManualLis
 
   const visible = logs.filter((l) => ["user_speech", "user_report", "device_guidance", "device_result", "system"].includes(l.kind));
   const hasUnsaved = logs.some((l) => l.saved === false);
-
-  const micOk = devices.mic ? devices.mic.status === "ok" : listening.micAvailable;
-  let mic;
-  if (!micOk) {
-    mic = { dot: colors.red, title: "마이크 연결을 확인해주세요", sub: "연결되면 기존 듣기 설정으로 돌아가요. 버튼과 매뉴얼은 계속 사용할 수 있어요." };
-  } else if (speaking) {
-    mic = { dot: colors.blue, title: "음성 안내 중", sub: "안내가 끝나면 다시 들을게요" };
-  } else if (listening.enabled) {
-    mic = { dot: colors.green, title: "음성으로 상황을 알려주세요", sub: "“다리를 다쳤어요”처럼 편하게 말하세요 · 눌러서 일시정지" };
-  } else {
-    mic = { dot: colors.textMuted, title: "음성 입력 일시정지", sub: "눌러서 다시 듣기" };
-  }
-
-  const handleAction = (a) => {
-    if (a.type === "openManual") onOpenManual(a.manualId);
-    else if (a.type === "openManualList") onOpenManualList();
-    else if (a.type === "reply") sendUtterance(a.text, "user_report");
-  };
 
   return (
     <View style={styles.card}>
@@ -77,30 +64,16 @@ export default function ChatPanel({ onOpenDevices, onOpenManual, onOpenManualLis
 
       {/* 대화 */}
       <ScrollView ref={scrollRef} style={styles.list} contentContainerStyle={styles.listContent}>
+        {visible.length === 0 && (
+          <Text style={styles.empty}>기능 실행 결과와 대화 기록이 여기에 표시돼요.</Text>
+        )}
         {visible.map((l) => (
-          <LogItem key={l.id} log={l} onAction={handleAction} />
+          <LogItem key={l.id} log={l} onAction={(a) => onAction?.(a)} />
         ))}
       </ScrollView>
 
-      {/* 마이크 상태 */}
-      <Pressable
-        style={({ pressed }) => [styles.micBar, pressed && { opacity: 0.85 }]}
-        disabled={!micOk}
-        onPress={() => setListening(!listening.enabled)}
-        accessibilityRole="button"
-        accessibilityLabel={`${mic.title}. ${listening.enabled ? "음성 입력 일시정지" : "음성 입력 다시 시작"}`}
-      >
-        <View style={[styles.micDot, { backgroundColor: mic.dot }]} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.micTitle}>{mic.title}</Text>
-          <Text style={styles.micSub}>{mic.sub}</Text>
-        </View>
-        <Ionicons
-          name={!micOk ? "mic-off-outline" : listening.enabled ? "mic-outline" : "pause-circle-outline"}
-          size={s(22)}
-          color={!micOk ? colors.red : colors.navy}
-        />
-      </Pressable>
+      {/* 하단 슬롯: 말하기 파트의 마이크 상태/입력 영역 */}
+      {footer}
     </View>
   );
 }
@@ -289,20 +262,5 @@ const styles = StyleSheet.create({
   },
   resultText: { fontFamily: fonts.medium, fontSize: s(12), color: colors.green, flexShrink: 1 },
   resultTime: { fontFamily: fonts.regular, fontSize: s(10), color: colors.textMuted },
-  micBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: s(10),
-    margin: s(14),
-    marginTop: s(4),
-    paddingHorizontal: s(16),
-    paddingVertical: s(10),
-    borderRadius: s(14),
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  micDot: { width: s(9), height: s(9), borderRadius: s(5) },
-  micTitle: { fontFamily: fonts.bold, fontSize: s(13), color: colors.navy },
-  micSub: { fontFamily: fonts.regular, fontSize: s(10), color: colors.textSub },
+  empty: { fontFamily: fonts.regular, fontSize: s(13), color: colors.textMuted, textAlign: "center", marginTop: s(30) },
 });

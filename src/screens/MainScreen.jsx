@@ -7,16 +7,17 @@ import StatusCluster from "../components/common/StatusCluster";
 import FeatureButton from "../components/main/FeatureButton";
 import GpsCard from "../components/main/GpsCard";
 import TimerCard from "../components/main/TimerCard";
-import ManualShortcutCard from "../components/main/ManualShortcutCard";
 import ChatPanel from "../components/main/ChatPanel";
-import VoiceInputModal from "../components/main/VoiceInputModal";
 import TimerDetailModal from "../components/main/TimerDetailModal";
+// 담당 파트 컴포넌트 (현재 스텁)
+import ManualShortcutCard from "../components/manual/ManualShortcutCard";
+import VoiceInputModal from "../components/voice/VoiceInputModal";
 import { useKit } from "../state/KitContext";
 import { colors, s } from "../theme";
 
 /** 01 메인 화면 (HOME) */
 export default function MainScreen({ navigation }) {
-  const { timer, metronome, rescue, devices, busy, featureError, runFeature } = useKit();
+  const { timer, metronome, rescue, devices, busy, featureError, runFeature, addLog } = useKit();
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
 
@@ -41,18 +42,36 @@ export default function MainScreen({ navigation }) {
   else if (metronome.interrupted) metroStatus = { text: "출력 중단됨 · 다시 눌러 시작", tone: "error" };
 
   let rescueStatus = { text: "주변 알림용 · 119 신고 아님", tone: "default" };
-  if (rescue.state === "unknown") rescueStatus = { text: "연결 오류 · 출력 상태 확인 불가", tone: "error" };
+  if (rescue.state === "unknown") rescueStatus = { text: "출력 상태 확인 불가", tone: "error" };
   else if (rescue.pausedBy === "guidance") rescueStatus = { text: "음성 안내 중 잠시 멈춤", tone: "default" };
   else if (rescue.playing) rescueStatus = { text: "울리는 중 · 119 신고는 별도로", tone: "active" };
-  else if (!devOk("buzzer")) rescueStatus = { text: "부저 연결 확인 · 사용 제한", tone: "error" };
   else if (featureError.rescue) rescueStatus = { text: featureError.rescue, tone: "error" };
-  else if (rescue.interrupted) rescueStatus = { text: "재연결됨 · 필요하면 다시 켜주세요", tone: "default" };
 
   const micOk = devOk("mic");
 
   const openManual = (manualId) => navigation.navigate("ManualDetail", { manualId });
   const openList = () => navigation.navigate("ManualList");
   const openDevices = () => navigation.navigate("DeviceStatus");
+
+  // 대화창 말풍선 버튼 처리. 새 action 타입은 여기에 추가한다.
+  const handleChatAction = (action) => {
+    switch (action.type) {
+      case "openManual":
+        return openManual(action.manualId);
+      case "openManualList":
+        return openList();
+      case "reply":
+        return addLog({ kind: "user_report", text: action.text });
+      default:
+        console.warn(`[ChatPanel] 처리되지 않은 action: ${action.type}`);
+    }
+  };
+
+  // 말하기 모달에서 확정된 문장 (말하기 파트가 발화 해석을 붙이면 여기서 이어서 처리)
+  const handleVoiceSubmit = (text) => {
+    if (!text?.trim()) return;
+    addLog({ kind: "user_speech", text: text.trim() });
+  };
 
   const iconSize = s(42);
 
@@ -132,12 +151,12 @@ export default function MainScreen({ navigation }) {
             </View>
           </View>
           <View style={styles.chatRow}>
-            <ChatPanel onOpenDevices={openDevices} onOpenManual={openManual} onOpenManualList={openList} />
+            <ChatPanel onOpenDevices={openDevices} onAction={handleChatAction} />
           </View>
         </View>
       </View>
 
-      <VoiceInputModal visible={voiceOpen} onClose={() => setVoiceOpen(false)} />
+      <VoiceInputModal visible={voiceOpen} onClose={() => setVoiceOpen(false)} onSubmit={handleVoiceSubmit} />
       <TimerDetailModal visible={timerOpen} onClose={() => setTimerOpen(false)} />
     </SafeAreaView>
   );
