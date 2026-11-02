@@ -7,12 +7,12 @@ import StatusCluster from "./StatusCluster";
 import { colors, s } from "../../theme";
 
 /** 하위 화면 공통 헤더: 뒤로가기 · 로고 · 배터리 · 날짜/시간 · 전원 */
-export default function Header({ showBack = false, showLogo = true }) {
+export default function Header({ showBack = false, showLogo = true, backgroundColor }) {
   const navigation = useNavigation();
   const canShowBack = showBack && navigation.canGoBack();
 
   return (
-    <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+    <SafeAreaView edges={["top", "left", "right"]} style={[styles.safeArea, backgroundColor && { backgroundColor }]}>
       <View style={styles.container}>
         <View style={styles.leftSlot}>
           {canShowBack && (
