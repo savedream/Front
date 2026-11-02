@@ -18,8 +18,8 @@ import { useManual } from "../../components/manual/useManuals";
 
 const PAGE_BG = "#F7F5EE";
 
-// 매뉴얼 목록 화면 라우트 (RootNavigator 의 "ManualTab")
-const MANUAL_LIST_ROUTE = "ManualTab";
+// 매뉴얼 목록 화면 라우트 (RootNavigator 의 "ManualList")
+const MANUAL_LIST_ROUTE = "ManualList";
 
 export default function ManualDetailScreen({
   route: propRoute,

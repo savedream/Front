@@ -2,38 +2,32 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import Header from "../components/common/Header";
 import MainScreen from "../screens/MainScreen";
-import ManualDetailScreen from "../screens/manual/ManualDetailScreen";
-import ManualTabScreen from "../screens/manual/ManualTabScreen";
-import VoiceModalScreen from "../screens/VoiceModalScreen";
+import ManualScreen from "../screens/ManualScreen";
+import ManualDetailScreen from "../screens/ManualDetailScreen";
+import DeviceStatusScreen from "../screens/DeviceStatusScreen";
+import { colors } from "../theme";
 
 const Stack = createNativeStackNavigator();
 
+/**
+ * 화면 연결 (UI 명세 07)
+ * HOME → VOICE_INPUT(모달), DEVICE_STATUS, MANUAL_LIST 또는 MANUAL_DETAIL
+ * 목록 → 선택한 MANUAL_DETAIL. 상세는 진입 경로에 맞춰 복귀한다 (스택 뒤로가기).
+ */
 export default function RootNavigator() {
   return (
     <Stack.Navigator
       initialRouteName="Main"
       screenOptions={{
         header: ({ back }) => <Header showBack={!!back} />,
-        contentStyle: { backgroundColor: "#FFFCF6" },
+        contentStyle: { backgroundColor: colors.bg },
+        animation: "fade",
       }}
     >
-      <Stack.Screen name="Main" component={MainScreen} />
-      {/* 긴급 매뉴얼 탭 화면 */}
-      <Stack.Screen name="ManualTab" component={ManualTabScreen} />
-      {/* 기존 Manual 라우트 호환용 별칭 */}
-      <Stack.Screen name="Manual" component={ManualTabScreen} />
-      {/* 매뉴얼 상세 단계 화면 */}
+      <Stack.Screen name="Main" component={MainScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="DeviceStatus" component={DeviceStatusScreen} />
+      <Stack.Screen name="ManualList" component={ManualScreen} />
       <Stack.Screen name="ManualDetail" component={ManualDetailScreen} />
-      {/* 음성 인식 모달 화면 */}
-      <Stack.Screen
-        name="VoiceModal"
-        component={VoiceModalScreen}
-        options={{
-          presentation: "transparentModal",
-          headerShown: false,
-          animation: "fade",
-        }}
-      />
     </Stack.Navigator>
   );
 }

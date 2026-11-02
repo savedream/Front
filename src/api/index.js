@@ -1,9 +1,14 @@
-/**
- * 키트 API
- *   common/  설정(.env) · 요청 · 오류 · 이벤트 스트림(SSE)
- *   voice/   말하기·안내
- *   manual/  매뉴얼
- */
-export * from "./common";
-export * from "./voice";
-export * from "./manual";
+export { API_CONFIG } from "./config";
+export { ApiError } from "./client";
+export { systemApi } from "./services/systemApi";
+export { batteryApi } from "./services/batteryApi";
+export { devicesApi } from "./services/devicesApi";
+export { gpsApi } from "./services/gpsApi";
+export { timerApi } from "./services/timerApi";
+export { metronomeApi } from "./services/metronomeApi";
+export { rescueSignalApi } from "./services/rescueSignalApi";
+export { logsApi } from "./services/logsApi";
+export { mockControlApi } from "./services/mockControlApi";
+
+// 말하기(voiceApi)·긴급 매뉴얼(manualApi) 서비스는 담당 팀원 파트.
+// src/api/services/ 에 파일을 추가하고 여기서 export 하면 된다. (src/COLLABORATION.md 참고)
