@@ -1,7 +1,6 @@
 import { http } from "../client";
 import { API_CONFIG } from "../config";
-import { kitRequest } from "../kitClient";
-import { toMs } from "../kitDevices";
+import { kitCall, toMs } from "../kitDevices";
 
 /**
  * 공통 ⑤ 대화·기능·매뉴얼 기록 저장
@@ -48,12 +47,12 @@ function toEntry(r) {
 export const logsApi = {
   list: async () => {
     if (API_CONFIG.USE_MOCK) return http.get("/logs");
-    const data = await kitRequest("GET", "/session/log");
+    const data = await kitCall("GET", "/session/log");
     return { entries: (data.records ?? []).map(toEntry) };
   },
   save: async (entries) => {
     if (API_CONFIG.USE_MOCK) return http.post("/logs", { entries });
-    await kitRequest("POST", "/records/retry");
+    await kitCall("POST", "/records/retry");
     return { savedIds: entries.map((e) => e.id) };
   },
 };

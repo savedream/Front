@@ -8,6 +8,19 @@ import { kitRequest } from "./kitClient";
  * 서버 필드(snake_case)는 이 파일과 services/* 에서만 바꾼다. 화면·KitContext 는 기존 모양 그대로 쓴다.
  */
 
+/**
+ * 기기 파트용 키트 요청. kitRequest(공통)를 그대로 부르고, 시간 초과면 e.isTimeout = true 를 붙인다.
+ * (KitContext 가 기존 ApiError 처럼 e.isTimeout 으로 시간 초과를 가린다. 공통 kitErrors.js 는 건드리지 않는다)
+ */
+export async function kitCall(method, path, body) {
+  try {
+    return await kitRequest(method, path, body);
+  } catch (e) {
+    if (e?.code === "TIMEOUT") e.isTimeout = true;
+    throw e;
+  }
+}
+
 const SHARE_MS = 500;
 let last = { at: 0, promise: null };
 
@@ -15,7 +28,7 @@ let last = { at: 0, promise: null };
 export function fetchKitDevices({ fresh = false } = {}) {
   const now = Date.now();
   if (!fresh && last.promise && now - last.at < SHARE_MS) return last.promise;
-  const promise = kitRequest("GET", "/devices");
+  const promise = kitCall("GET", "/devices");
   last = { at: now, promise };
   promise.catch(() => {
     if (last.promise === promise) last = { at: 0, promise: null };

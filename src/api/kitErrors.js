@@ -32,9 +32,4 @@ export class KitApiError extends Error {
     this.code = code;
     this.status = status;
   }
-
-  /** 기존 ApiError 와 같은 이름 (KitContext 가 e.isTimeout 으로 시간 초과를 가린다) */
-  get isTimeout() {
-    return this.code === KIT_ERROR_CODE.TIMEOUT;
-  }
 }

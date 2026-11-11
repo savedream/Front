@@ -1,7 +1,6 @@
 import { http } from "../client";
 import { API_CONFIG } from "../config";
-import { kitRequest } from "../kitClient";
-import { fetchKitDevices, toBattery, toDeviceList } from "../kitDevices";
+import { kitCall, fetchKitDevices, toBattery, toDeviceList } from "../kitDevices";
 import { KitApiError } from "../kitErrors";
 
 /**
@@ -18,7 +17,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function waitReady() {
   const end = Date.now() + READY_WAIT_MS;
   for (;;) {
-    const health = await kitRequest("GET", "/health");
+    const health = await kitCall("GET", "/health");
     if (health.ready) return health;
     if (Date.now() > end) throw new KitApiError("키트가 아직 준비되지 않았어요.", { code: "NOT_READY" });
     await sleep(READY_POLL_MS);
@@ -35,5 +34,5 @@ export const systemApi = {
   },
   /** 마이크·메트로놈·구조신호를 모두 종료하고 전원 종료 */
   shutdown: () =>
-    API_CONFIG.USE_MOCK ? http.post("/system/shutdown") : kitRequest("POST", "/system/shutdown", { confirm: true }),
+    API_CONFIG.USE_MOCK ? http.post("/system/shutdown") : kitCall("POST", "/system/shutdown", { confirm: true }),
 };

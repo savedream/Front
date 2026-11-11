@@ -1,7 +1,6 @@
 import { http } from "../client";
 import { API_CONFIG } from "../config";
-import { kitRequest } from "../kitClient";
-import { toMs } from "../kitDevices";
+import { kitCall, toMs } from "../kitDevices";
 
 /**
  * 기능 ③ GPS 현재 위치 좌표 (지도 없음, 좌표만)
@@ -27,7 +26,7 @@ export const gpsApi = {
     if (API_CONFIG.USE_MOCK) return http.get("/gps");
     let loc;
     try {
-      loc = await kitRequest("GET", "/location");
+      loc = await kitCall("GET", "/location");
     } catch (e) {
       if (e.code === "DEVICE_UNAVAILABLE") return { connected: false, fix: false, ...NO_FIX, lastKnown: null };
       throw e;

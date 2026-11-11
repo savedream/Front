@@ -1,7 +1,6 @@
 import { http } from "../client";
 import { API_CONFIG } from "../config";
-import { kitRequest } from "../kitClient";
-import { fetchKitDevices, invalidateKitDevices, soundAfterPress, toSound } from "../kitDevices";
+import { kitCall, fetchKitDevices, invalidateKitDevices, soundAfterPress, toSound } from "../kitDevices";
 
 /**
  * 기능 ⑧ 구조신호 (주변에 알리는 소리, 119 신고 아님. 백엔드에서는 스피커로 낸다)
@@ -12,7 +11,7 @@ import { fetchKitDevices, invalidateKitDevices, soundAfterPress, toSound } from 
  *            스피커가 없으면 503 DEVICE_UNAVAILABLE
  */
 async function press(on) {
-  const res = await kitRequest("POST", on ? "/rescue-signal/on" : "/rescue-signal/off");
+  const res = await kitCall("POST", on ? "/rescue-signal/on" : "/rescue-signal/off");
   invalidateKitDevices();
   return soundAfterPress(res, on);
 }

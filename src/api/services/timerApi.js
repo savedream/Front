@@ -1,7 +1,6 @@
 import { http } from "../client";
 import { API_CONFIG } from "../config";
-import { kitRequest } from "../kitClient";
-import { fetchKitDevices, invalidateKitDevices, timerAfterPress, toTimer } from "../kitDevices";
+import { kitCall, fetchKitDevices, invalidateKitDevices, timerAfterPress, toTimer } from "../kitDevices";
 
 /**
  * 기능 ⑥ 타이머 (증가하는 경과 시간, 카운트다운 아님)
@@ -13,7 +12,7 @@ import { fetchKitDevices, invalidateKitDevices, timerAfterPress, toTimer } from 
  *            버튼 응답 result 가 pending·queued 면 확인 문장을 읽은 뒤 바뀐다 → 요청한 상태로 먼저 보여준다
  */
 async function press(path, want) {
-  const res = await kitRequest("POST", path);
+  const res = await kitCall("POST", path);
   invalidateKitDevices();
   return timerAfterPress(res, want);
 }
@@ -30,7 +29,7 @@ export const timerApi = {
   /** 공통 ⑥: 현재 구간을 저장한 뒤에만 초기화. 저장 실패 시 SAVE_FAILED 에러 */
   reset: async () => {
     if (API_CONFIG.USE_MOCK) return http.post("/timer/reset", { save: true });
-    const res = await kitRequest("POST", "/timer/reset", { confirm: true });
+    const res = await kitCall("POST", "/timer/reset", { confirm: true });
     invalidateKitDevices();
     return toTimer(res.timer);
   },
