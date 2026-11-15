@@ -11,7 +11,6 @@ import {
 import {
   batteryApi,
   devicesApi,
-  gpsApi,
   logsApi,
   metronomeApi,
   mockControlApi,
@@ -39,7 +38,6 @@ const KitContext = createContext(null);
 
 const POLL_MS = 1500;
 const DEVICE_LABEL = {
-  gps: "GPS",
   mic: "마이크",
   speaker: "스피커",
   aiModel: "AI 응급 모델",
@@ -64,8 +62,6 @@ export function KitProvider({ children }) {
   const [battery, setBattery] = useState(null); // null = 확인 전
   const [batteryError, setBatteryError] = useState(false);
   const [devices, setDevices] = useState({}); // id → Device
-  const [gps, setGps] = useState(null);
-  const [gpsError, setGpsError] = useState(false);
 
   const [timer, setTimer] = useState(INITIAL_TIMER);
   const [clockOffset, setClockOffset] = useState(0); // serverTime - Date.now()
@@ -78,7 +74,15 @@ export function KitProvider({ children }) {
   const [notice, setNotice] = useState(null);
   const [powerDialog, setPowerDialog] = useState(null); // null | confirm | saving | failed | stopping
   const [serverUnsaved, setServerUnsaved] = useState(0); // 키트에 저장되지 않은 처치 기록 수 (실제 API)
-  const [micState, setMicState] = useState("armed"); // 상시 듣기: armed | paused | blocked | unavailable ... (devices.mic.micState)
+  const [micState, setMicState] = useState("armed"); // 마이크 상태: armed | capturing | processing | paused | blocked | unavailable
+  // 상시 듣기 토글 값 (사용자 설정). 구조신호 중(blocked)·녹음 중(capturing)에는 서버 상태가 paused 를 덮어쓰므로
+  // armed / paused 일 때만 서버 값으로 맞추고, 그 밖의 상태에서는 마지막 설정을 유지한다.
+  const [micPaused, setMicPaused] = useState(false);
+  const applyMicState = useCallback((state) => {
+    if (!state) return;
+    setMicState(state);
+    if (state === "armed" || state === "paused") setMicPaused(state === "paused");
+  }, []);
 
   // 비동기 흐름에서 최신 상태를 읽기 위한 ref
   const ref = useRef({});
@@ -159,9 +163,9 @@ export function KitProvider({ children }) {
       }
       setDevices(next);
       // 상시 듣기 상태는 실제 API 에서만 서버 값을 따른다 (목데이터는 토글 값을 화면에서만 유지)
-      if (!KIT_API_CONFIG.USE_MOCK && !busyRef.current.mic && next.mic?.micState) setMicState(next.mic.micState);
+      if (!KIT_API_CONFIG.USE_MOCK && !busyRef.current.mic) applyMicState(next.mic?.micState);
     },
-    [addLog, showNotice]
+    [addLog, applyMicState, showNotice]
   );
 
   const syncTimer = useCallback((t) => {
@@ -176,13 +180,6 @@ export function KitProvider({ children }) {
           applyDevices(r.devices);
           if (typeof r.unsavedRecords === "number") setServerUnsaved(r.unsavedRecords);
         }),
-        gpsApi
-          .get()
-          .then((g) => {
-            setGps(g);
-            setGpsError(false);
-          })
-          .catch(() => setGpsError(true)),
       ];
       if (!busyRef.current.metronome) jobs.push(metronomeApi.get().then(setMetronome));
       if (!busyRef.current.rescue) jobs.push(rescueSignalApi.get().then(setRescue));
@@ -427,8 +424,9 @@ export function KitProvider({ children }) {
       if (busyRef.current.mic) return;
       busyRef.current.mic = true;
       setBusy((p) => ({ ...p, mic: true }));
-      const before = micState;
-      setMicState(on ? "armed" : "paused");
+      const before = { state: micState, paused: micPaused };
+      setMicPaused(!on);
+      if (micState === "armed" || micState === "paused") setMicState(on ? "armed" : "paused");
       try {
         if (KIT_API_CONFIG.USE_MOCK) {
           showNotice(on ? "상시 듣기를 켰어요." : "상시 듣기를 껐어요. 말하기 버튼으로는 계속 말할 수 있어요.");
@@ -436,18 +434,20 @@ export function KitProvider({ children }) {
         }
         const { state } = on ? await voiceApi.resumeMic() : await voiceApi.pauseMic();
         if (state) setMicState(state);
+        setMicPaused(!on); // blocked 로 와도 사용자가 켠 설정은 켜짐으로 유지
         if (state === "blocked") showNotice("구조신호가 울리는 동안은 듣지 않아요. 끄면 다시 들어요.");
         else if (state === "unavailable") showNotice("마이크 연결을 확인해주세요.", "error");
         else showNotice(on ? "상시 듣기를 켰어요." : "상시 듣기를 껐어요. 말하기 버튼으로는 계속 말할 수 있어요.");
       } catch (e) {
-        setMicState(before);
+        setMicState(before.state);
+        setMicPaused(before.paused);
         showNotice(`상시 듣기를 ${on ? "켜지" : "끄지"} 못했어요: ${e.message}`, "error");
       } finally {
         busyRef.current.mic = false;
         setBusy((p) => ({ ...p, mic: false }));
       }
     },
-    [micState, showNotice]
+    [micState, micPaused, showNotice]
   );
 
   /* ------------------------------------------------------------ 새 세션 */
@@ -518,7 +518,6 @@ export function KitProvider({ children }) {
     setMetronome({ ...INITIAL_SOUND, bpm: 110 });
     setRescue(INITIAL_SOUND);
     setDevices({});
-    setGps(null);
     boot();
   }, [boot]);
 
@@ -528,8 +527,6 @@ export function KitProvider({ children }) {
     battery,
     batteryError,
     devices,
-    gps,
-    gpsError,
     timer,
     clockOffset,
     metronome,
@@ -544,6 +541,7 @@ export function KitProvider({ children }) {
     resetTimer,
     newSession,
     micState,
+    micPaused,
     setMicListening,
     serverUnsaved,
     addLog,

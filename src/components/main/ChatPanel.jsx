@@ -18,9 +18,11 @@ import { colors, fonts, s, shadow } from "../../theme";
  *   footer: ReactNode       하단 입력/마이크 상태 영역 슬롯 (말하기 파트에서 채움)
  */
 export default function ChatPanel({ onOpenDevices, onAction, footer = null }) {
-  const { logs, retryUnsaved, newSession, busy, micState, setMicListening, serverUnsaved } = useKit();
-  const micOn = micState !== "paused";
-  const micLabel = micState === "paused" ? "듣기 꺼짐" : micState === "blocked" ? "듣기 멈춤" : micState === "unavailable" ? "마이크 없음" : "상시 듣기";
+  const { logs, retryUnsaved, newSession, busy, micState, micPaused, setMicListening, serverUnsaved } = useKit();
+  // 토글은 사용자 설정(micPaused)을 따른다. 구조신호(blocked)·녹음 중이어도 토글이 저절로 바뀌지 않는다
+  const micOn = !micPaused;
+  const micLabel =
+    micState === "unavailable" ? "마이크 없음" : micPaused ? "듣기 꺼짐" : micState === "blocked" ? "듣기 멈춤" : "상시 듣기";
   const [confirmNew, setConfirmNew] = useState(false);
 
   const startNewSession = async () => {

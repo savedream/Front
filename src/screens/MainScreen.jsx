@@ -5,7 +5,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import StatusCluster from "../components/common/StatusCluster";
 import FeatureButton from "../components/main/FeatureButton";
-import GpsCard from "../components/main/GpsCard";
 import TimerCard from "../components/main/TimerCard";
 import ChatPanel from "../components/main/ChatPanel";
 import TimerDetailModal from "../components/main/TimerDetailModal";
@@ -147,7 +146,6 @@ export default function MainScreen({ navigation }) {
             </View>
             <View style={styles.infoCol}>
               <View style={styles.statusRow}>
-                <GpsCard />
                 <StatusCluster />
               </View>
               <ManualShortcutCard onOpenList={openList} onOpenManual={openManual} />
@@ -175,6 +173,6 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", gap: s(18), height: "38%" },
   timerCol: { flex: 0.95 },
   infoCol: { flex: 1.15, gap: s(10) },
-  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: s(10) },
+  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: s(10) },
   chatRow: { flex: 1 },
 });
