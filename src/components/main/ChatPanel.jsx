@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
+import Dialog from "../common/Dialog";
 import { formatClock, useKit } from "../../state/KitContext";
 import { colors, fonts, s, shadow } from "../../theme";
 
@@ -17,7 +18,15 @@ import { colors, fonts, s, shadow } from "../../theme";
  *   footer: ReactNode       하단 입력/마이크 상태 영역 슬롯 (말하기 파트에서 채움)
  */
 export default function ChatPanel({ onOpenDevices, onAction, footer = null }) {
-  const { logs, retryUnsaved } = useKit();
+  const { logs, retryUnsaved, newSession, busy, micState, setMicListening, serverUnsaved } = useKit();
+  const micOn = micState !== "paused";
+  const micLabel = micState === "paused" ? "듣기 꺼짐" : micState === "blocked" ? "듣기 멈춤" : micState === "unavailable" ? "마이크 없음" : "상시 듣기";
+  const [confirmNew, setConfirmNew] = useState(false);
+
+  const startNewSession = async () => {
+    setConfirmNew(false);
+    await newSession();
+  };
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -26,7 +35,8 @@ export default function ChatPanel({ onOpenDevices, onAction, footer = null }) {
   }, [logs.length]);
 
   const visible = logs.filter((l) => ["user_speech", "user_report", "device_guidance", "device_result", "system"].includes(l.kind));
-  const hasUnsaved = logs.some((l) => l.saved === false);
+  // 화면 기록 저장 실패 또는 키트 쪽 미저장 기록(record.save_failed)
+  const hasUnsaved = logs.some((l) => l.saved === false) || serverUnsaved > 0;
 
   return (
     <View style={styles.card}>
@@ -40,20 +50,46 @@ export default function ChatPanel({ onOpenDevices, onAction, footer = null }) {
           <Text style={styles.headSub}>기기 내에서 안전하게 처리 중</Text>
         </View>
 
-        {/* 미확정: 원본 UI 의 무라벨 토글 · 내보내기. 기능 확정 전까지 비활성 */}
-        <View style={styles.tbd} accessibilityLabel="기능 미확정 토글" accessibilityState={{ disabled: true }}>
-          <Switch value disabled trackColor={{ true: colors.navy }} thumbColor="#FFFFFF" style={styles.switch} />
-          <Text style={styles.tbdText}>미확정</Text>
+        {/* 상시 듣기 끄기·켜기 (POST /api/mic/pause · /api/mic/resume). 꺼도 말하기 버튼은 쓸 수 있다 */}
+        <View style={styles.micToggle}>
+          <Switch
+            value={micOn}
+            onValueChange={setMicListening}
+            disabled={!!busy.mic || micState === "unavailable"}
+            trackColor={{ true: colors.navy }}
+            thumbColor="#FFFFFF"
+            style={styles.switch}
+            accessibilityLabel="상시 듣기"
+          />
+          <Text style={styles.micText}>{micLabel}</Text>
         </View>
+        <Pressable
+          style={({ pressed }) => [styles.devBtn, (pressed || busy.session) && { opacity: 0.6 }]}
+          onPress={() => setConfirmNew(true)}
+          disabled={!!busy.session}
+          accessibilityRole="button"
+          accessibilityLabel="새 세션"
+        >
+          <Ionicons name="refresh-outline" size={s(16)} color={colors.blue} />
+          <Text style={styles.devText}>새 세션</Text>
+        </Pressable>
         <Pressable style={styles.devBtn} onPress={onOpenDevices} accessibilityRole="button" accessibilityLabel="기기 상태">
           <Ionicons name="phone-portrait-outline" size={s(16)} color={colors.blue} />
           <Text style={styles.devText}>기기 상태</Text>
         </Pressable>
-        <View style={styles.tbd} accessibilityLabel="내보내기 기능 미확정" accessibilityState={{ disabled: true }}>
-          <Ionicons name="share-outline" size={s(22)} color={colors.textMuted} />
-          <Text style={styles.tbdText}>미확정</Text>
-        </View>
       </View>
+
+      <Dialog
+        visible={confirmNew}
+        icon="refresh-outline"
+        title="새 세션을 시작할까요?"
+        message="지금까지의 기록은 저장되고, 대화창이 비워져요. 켜 둔 소리도 꺼져요."
+        onRequestClose={() => setConfirmNew(false)}
+        buttons={[
+          { label: "취소", onPress: () => setConfirmNew(false) },
+          { label: "새 세션", onPress: startNewSession, variant: "primary" },
+        ]}
+      />
 
       {hasUnsaved && (
         <Pressable style={styles.unsaved} onPress={retryUnsaved} accessibilityRole="button">
@@ -184,8 +220,8 @@ const styles = StyleSheet.create({
   },
   headTitle: { fontFamily: fonts.bold, fontSize: s(15), color: colors.navy },
   headSub: { fontFamily: fonts.regular, fontSize: s(10), color: colors.textSub },
-  tbd: { alignItems: "center", opacity: 0.45 },
-  tbdText: { fontFamily: fonts.regular, fontSize: s(8), color: colors.textSub },
+  micToggle: { alignItems: "center" },
+  micText: { fontFamily: fonts.regular, fontSize: s(8), color: colors.textSub },
   switch: { transform: [{ scale: 0.85 }] },
   devBtn: {
     flexDirection: "row",

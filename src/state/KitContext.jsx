@@ -16,9 +16,14 @@ import {
   metronomeApi,
   mockControlApi,
   rescueSignalApi,
+  sessionApi,
   systemApi,
   timerApi,
 } from "../api";
+import { KIT_API_CONFIG } from "../api/kitConfig";
+import { KIT_EVENT, subscribeKitEvents } from "../api/kitEvents";
+import { toMs } from "../api/kitDevices";
+import { voiceApi } from "../api/services/voiceApi";
 import { josa } from "../utils/josa";
 
 /**
@@ -44,6 +49,11 @@ const DEVICE_LABEL = {
 let logSeq = 0;
 const newId = (p) => `${p}_${Date.now()}_${++logSeq}`;
 
+// 문구 없이 code 만 오는 ui.notice 의 화면 문구
+const NOTICE_TEXT = {
+  OUT_OF_SCOPE: "응급 상황과 관련된 내용을 말씀해 주세요.",
+};
+
 const INITIAL_TIMER = { status: "idle", startedAt: null, accumulatedMs: 0, segments: [] };
 const INITIAL_SOUND = { playing: false, pausedBy: null, interrupted: false, state: "off" };
 
@@ -67,10 +77,12 @@ export function KitProvider({ children }) {
   const [logs, setLogs] = useState([]);
   const [notice, setNotice] = useState(null);
   const [powerDialog, setPowerDialog] = useState(null); // null | confirm | saving | failed | stopping
+  const [serverUnsaved, setServerUnsaved] = useState(0); // 키트에 저장되지 않은 처치 기록 수 (실제 API)
+  const [micState, setMicState] = useState("armed"); // 상시 듣기: armed | paused | blocked | unavailable ... (devices.mic.micState)
 
   // 비동기 흐름에서 최신 상태를 읽기 위한 ref
   const ref = useRef({});
-  ref.current = { timer, metronome, rescue, devices, logs, phase };
+  ref.current = { timer, metronome, rescue, devices, logs, phase, serverUnsaved };
   const busyRef = useRef({});
   const noticeTimer = useRef(null);
 
@@ -106,11 +118,23 @@ export function KitProvider({ children }) {
     [persist]
   );
 
-  const retryUnsaved = useCallback(() => {
+  const retryUnsaved = useCallback(async () => {
     const unsaved = ref.current.logs.filter((l) => l.saved === false);
     if (unsaved.length) return persist(unsaved);
-    return Promise.resolve(true);
-  }, [persist]);
+    // 화면 기록은 다 저장됐지만 키트 쪽에 미저장 기록이 남은 경우 (record.save_failed) → POST /api/records/retry
+    if (!KIT_API_CONFIG.USE_MOCK && ref.current.serverUnsaved > 0) {
+      try {
+        await logsApi.save([]);
+        setServerUnsaved(0);
+        showNotice("기록을 저장했어요.", "success");
+        return true;
+      } catch (e) {
+        showNotice(`기록을 저장하지 못했어요: ${e.message}`, "error");
+        return false;
+      }
+    }
+    return true;
+  }, [persist, showNotice]);
 
   /* ------------------------------------------------------------ 상태 감시 */
   const applyDevices = useCallback(
@@ -134,6 +158,8 @@ export function KitProvider({ children }) {
         });
       }
       setDevices(next);
+      // 상시 듣기 상태는 실제 API 에서만 서버 값을 따른다 (목데이터는 토글 값을 화면에서만 유지)
+      if (!KIT_API_CONFIG.USE_MOCK && !busyRef.current.mic && next.mic?.micState) setMicState(next.mic.micState);
     },
     [addLog, showNotice]
   );
@@ -146,7 +172,10 @@ export function KitProvider({ children }) {
   const refreshAll = useCallback(
     async (withSlow = false) => {
       const jobs = [
-        devicesApi.list().then((r) => applyDevices(r.devices)),
+        devicesApi.list().then((r) => {
+          applyDevices(r.devices);
+          if (typeof r.unsavedRecords === "number") setServerUnsaved(r.unsavedRecords);
+        }),
         gpsApi
           .get()
           .then((g) => {
@@ -184,6 +213,62 @@ export function KitProvider({ children }) {
     }, POLL_MS);
     return () => clearInterval(id);
   }, [phase, refreshAll]);
+
+  /* ------------------------------------------------------------ 키트 이벤트 → 대화창 (실제 API) */
+  // 말하기 결과(speech.final)와 키트 안내(guide.say)는 이벤트로 온다. 서버가 이미 기록했으므로 다시 저장하지 않고,
+  // id 는 서버 record_id 를 써서 부팅 때 불러온 기록과 겹치지 않게 한다.
+  // 버튼으로 낸 턴의 안내(확인 문장·질문 반복)는 device_result 로 이미 보여주므로 말하기 턴 · 키트 자체 안내만 보여준다.
+  useEffect(() => {
+    if (KIT_API_CONFIG.USE_MOCK || phase !== "ready") return undefined;
+    const spokenTurns = new Set();
+    const pushServerLog = (entry) =>
+      setLogs((prev) => (prev.some((l) => l.id === entry.id) ? prev : [...prev, { ...entry, saved: true }]));
+    const offs = [
+      // 새 세션 턴(session.updated 에 session_id 가 있음)의 시작 안내도 보여준다
+      subscribeKitEvents(KIT_EVENT.SESSION_UPDATED, (d) => {
+        if (d?.turn_id && d.session_id) spokenTurns.add(d.turn_id);
+      }),
+      subscribeKitEvents(KIT_EVENT.SPEECH_FINAL, (d) => {
+        if (d?.turn_id) spokenTurns.add(d.turn_id);
+        if (!d?.text) return;
+        pushServerLog({ id: d.record_id ?? newId("user_speech"), kind: "user_speech", text: d.text, at: toMs(d.at) ?? Date.now() });
+      }),
+      subscribeKitEvents(KIT_EVENT.GUIDE_SAY, (d) => {
+        if (!d?.text) return;
+        if (d.turn_id && !spokenTurns.has(d.turn_id)) return;
+        pushServerLog({ id: d.record_id ?? newId("device_guidance"), kind: "device_guidance", text: d.text, at: toMs(d.at) ?? Date.now() });
+      }),
+    ];
+    // 화면에만 띄우는 알림 (소리 없음)
+    offs.push(
+      subscribeKitEvents(KIT_EVENT.UI_NOTICE, (d) => {
+        const code = String(d?.code ?? "");
+        if (code.startsWith("STT_")) {
+          // 잡음·인식 실패: 대화창에 쌓지 않고 잠깐만 알린다 (말하기 창이 열려 있으면 창에도 표시됨)
+          showNotice("잘 알아듣지 못했어요. 다시 말해주세요.");
+          return;
+        }
+        if (code === "SAVE_FAILED") {
+          showNotice("기록을 저장하지 못했어요. 대화창 위 배너를 눌러 다시 저장해주세요.", "error");
+          return;
+        }
+        // OUT_OF_SCOPE 등 문구가 있는 알림은 대화창 시스템 메시지로
+        const text = d?.text || NOTICE_TEXT[code];
+        if (text) pushServerLog({ id: `notice_${d.seq ?? Date.now()}`, kind: "system", text, at: toMs(d.at) ?? Date.now() });
+      }),
+      // 처치 기록 저장 실패 → "저장되지 않은 기록" 배너
+      subscribeKitEvents(KIT_EVENT.RECORD_SAVE_FAILED, (d) => {
+        if (typeof d?.unsaved === "number") setServerUnsaved(d.unsaved);
+        showNotice(d?.message ?? "기록을 저장하지 못했어요.", "error");
+      }),
+      // 미저장 건수 변화 (자동 재시도로 저장되면 0 → 배너가 사라진다)
+      subscribeKitEvents(KIT_EVENT.STATUS_CHANGED, (d) => {
+        const n = d?.storage?.unsaved_records;
+        if (typeof n === "number") setServerUnsaved(n);
+      })
+    );
+    return () => offs.forEach((off) => off());
+  }, [phase, showNotice]);
 
   /* ------------------------------------------------------------ 부팅 (기능 ①) */
   const boot = useCallback(async () => {
@@ -335,6 +420,66 @@ export function KitProvider({ children }) {
     }
   }, [addLog, showNotice, syncTimer]);
 
+  /* ------------------------------------------------------------ 상시 듣기 (대화창 헤더 토글) */
+  // on: POST /api/mic/resume → armed | blocked(구조신호 중) | unavailable(마이크 없음), off: POST /api/mic/pause → paused
+  const setMicListening = useCallback(
+    async (on) => {
+      if (busyRef.current.mic) return;
+      busyRef.current.mic = true;
+      setBusy((p) => ({ ...p, mic: true }));
+      const before = micState;
+      setMicState(on ? "armed" : "paused");
+      try {
+        if (KIT_API_CONFIG.USE_MOCK) {
+          showNotice(on ? "상시 듣기를 켰어요." : "상시 듣기를 껐어요. 말하기 버튼으로는 계속 말할 수 있어요.");
+          return;
+        }
+        const { state } = on ? await voiceApi.resumeMic() : await voiceApi.pauseMic();
+        if (state) setMicState(state);
+        if (state === "blocked") showNotice("구조신호가 울리는 동안은 듣지 않아요. 끄면 다시 들어요.");
+        else if (state === "unavailable") showNotice("마이크 연결을 확인해주세요.", "error");
+        else showNotice(on ? "상시 듣기를 켰어요." : "상시 듣기를 껐어요. 말하기 버튼으로는 계속 말할 수 있어요.");
+      } catch (e) {
+        setMicState(before);
+        showNotice(`상시 듣기를 ${on ? "켜지" : "끄지"} 못했어요: ${e.message}`, "error");
+      } finally {
+        busyRef.current.mic = false;
+        setBusy((p) => ({ ...p, mic: false }));
+      }
+    },
+    [micState, showNotice]
+  );
+
+  /* ------------------------------------------------------------ 새 세션 */
+  // 대화창을 비우고 새 세션을 연다. 시작 안내(guide.say)가 응답보다 먼저 올 수 있어 요청 전에 비우고, 실패하면 되돌린다.
+  const newSession = useCallback(async () => {
+    if (busyRef.current.session) return { ok: false, message: "처리 중이에요." };
+    busyRef.current.session = true;
+    setBusy((p) => ({ ...p, session: true }));
+    const prevLogs = ref.current.logs;
+    setLogs([]);
+    try {
+      await sessionApi.reset();
+      setFeatureError({});
+      if (KIT_API_CONFIG.USE_MOCK) {
+        setTimer(INITIAL_TIMER);
+        setMetronome({ ...INITIAL_SOUND, bpm: 110 });
+        setRescue(INITIAL_SOUND);
+      } else {
+        refreshAll(true);
+      }
+      showNotice("새 세션을 시작했어요.", "success");
+      return { ok: true };
+    } catch (e) {
+      setLogs((cur) => [...prevLogs, ...cur.filter((l) => !prevLogs.some((p) => p.id === l.id))]);
+      showNotice(`새 세션을 시작하지 못했어요: ${e.message}`, "error");
+      return { ok: false, message: e.message };
+    } finally {
+      busyRef.current.session = false;
+      setBusy((p) => ({ ...p, session: false }));
+    }
+  }, [refreshAll, showNotice]);
+
   /* ------------------------------------------------------------ 전원 (기능 ①, 공통 ⑥) */
   const requestPower = useCallback(() => setPowerDialog("confirm"), []);
   const cancelPower = useCallback(() => setPowerDialog(null), []);
@@ -397,6 +542,10 @@ export function KitProvider({ children }) {
     // actions (다른 파트 연결용: runFeature, addLog, showNotice)
     runFeature,
     resetTimer,
+    newSession,
+    micState,
+    setMicListening,
+    serverUnsaved,
     addLog,
     retryUnsaved,
     refreshAll,

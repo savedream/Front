@@ -1,7 +1,6 @@
 import { http } from "../client";
 import { API_CONFIG } from "../config";
-import { fetchKitDevices, toSound } from "../kitDevices";
-import { KitApiError } from "../kitErrors";
+import { fetchKitDevices, invalidateKitDevices, kitCall, soundAfterPress, toSound } from "../kitDevices";
 
 /**
  * 기능 ⑦ 메트로놈
@@ -9,17 +8,15 @@ import { KitApiError } from "../kitErrors";
  *
  * - 목데이터: GET /metronome, POST /metronome/start|stop
  * - 백엔드:   상태는 GET /api/devices 의 metronome (부저로 낸다)
- *            ⚠ 백엔드에는 메트로놈 버튼 API 가 없다 (음성 명령·절차 엔진으로만 켜고 끈다).
- *              그래서 버튼은 안내 문구로 실패 처리한다. 백엔드에 API 가 생기면 start/stop 만 바꾸면 된다.
+ *            버튼은 POST /api/metronome/on|off (스피커가 없으면 503 DEVICE_UNAVAILABLE)
  */
 const BPM = 110;
 
-const notSupported = () =>
-  Promise.reject(
-    new KitApiError("메트로놈은 지금 음성으로만 켜고 끌 수 있어요. \"메트로놈 켜 줘\"라고 말해 주세요.", {
-      code: "NOT_SUPPORTED",
-    })
-  );
+async function press(on) {
+  const res = await kitCall("POST", on ? "/metronome/on" : "/metronome/off");
+  invalidateKitDevices();
+  return { ...soundAfterPress(res, on), bpm: res.device?.detail?.bpm ?? BPM };
+}
 
 export const metronomeApi = {
   get: async () => {
@@ -27,6 +24,6 @@ export const metronomeApi = {
     const data = await fetchKitDevices();
     return toSound(data.metronome, { bpm: data.metronome?.detail?.bpm ?? BPM });
   },
-  start: () => (API_CONFIG.USE_MOCK ? http.post("/metronome/start") : notSupported()),
-  stop: () => (API_CONFIG.USE_MOCK ? http.post("/metronome/stop") : notSupported()),
+  start: () => (API_CONFIG.USE_MOCK ? http.post("/metronome/start") : press(true)),
+  stop: () => (API_CONFIG.USE_MOCK ? http.post("/metronome/stop") : press(false)),
 };

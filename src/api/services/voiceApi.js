@@ -32,6 +32,9 @@ export const voiceApi = {
   /** 녹음 종료 후 처리 시작 (202). 409 NOT_LISTENING. 인식 문장은 speech.final 이벤트로 온다 */
   stopSpeech: async () => toTurn(await kitRequest("POST", "/speech/stop")),
 
+  /** 다시 말하기: 녹음 중인 것을 버리고 같은 턴으로 처음부터. 409 NOT_LISTENING */
+  restartSpeech: async () => toTurn(await kitRequest("POST", "/speech/restart")),
+
   /** 상시 듣기(VAD) 일시정지 → { state: "paused" } */
   pauseMic: async () => ({ state: (await kitRequest("POST", "/mic/pause")).state ?? null }),
 

@@ -12,6 +12,7 @@ import TimerDetailModal from "../components/main/TimerDetailModal";
 // 담당 파트 컴포넌트 (현재 스텁)
 import ManualShortcutCard from "../components/manual/ManualShortcutCard";
 import VoiceInputModal from "../components/voice/VoiceInputModal";
+import { KIT_API_CONFIG } from "../api/kitConfig";
 import { useKit } from "../state/KitContext";
 import { colors, s } from "../theme";
 
@@ -70,6 +71,8 @@ export default function MainScreen({ navigation }) {
   // 말하기 모달에서 확정된 문장 (말하기 파트가 발화 해석을 붙이면 여기서 이어서 처리)
   const handleVoiceSubmit = (text) => {
     if (!text?.trim()) return;
+    // 실제 API 는 speech.final 이벤트로 KitContext 가 대화창에 올린다 (여기서 또 올리면 두 번 보임)
+    if (!KIT_API_CONFIG.USE_MOCK) return;
     addLog({ kind: "user_speech", text: text.trim() });
   };
 

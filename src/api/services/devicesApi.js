@@ -16,7 +16,9 @@ import { KitApiError } from "../kitErrors";
 export const devicesApi = {
   list: async () => {
     if (API_CONFIG.USE_MOCK) return http.get("/devices");
-    return toDeviceList(await fetchKitDevices());
+    const data = await fetchKitDevices();
+    // unsavedRecords: 키트에 아직 저장되지 않은 처치 기록 수 (대화창 "저장되지 않은 기록" 배너)
+    return { ...toDeviceList(data), unsavedRecords: data.storage?.unsaved_records ?? 0 };
   },
   reconnect: async (id) => {
     if (API_CONFIG.USE_MOCK) return http.post(`/devices/${id}/reconnect`);

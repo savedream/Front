@@ -1,5 +1,6 @@
 import { KIT_EVENT, subscribeKitEvents } from "../../api/kitEvents";
 import { voiceApi } from "../../api/services/voiceApi";
+import { VOICE_ERROR } from "./voiceStatus";
 
 /**
  * 키트 API STT 엔진 (useVoiceSession 의 engine 인터페이스)
@@ -41,11 +42,26 @@ export function createApiSttEngine({ api = voiceApi, subscribe = subscribeKitEve
         subscribe(KIT_EVENT.SPEECH_FINAL, (data) => {
           if (!active || !isMyTurn(data)) return;
           handlers.onFinal?.(typeof data === "string" ? data : data?.text);
+        }),
+        // 말소리가 없거나 인식 실패(STT_EMPTY · STT_FAILED)면 speech.final 없이 ui.notice 만 온다 → 바로 "인식하지 못했어요"
+        subscribe(KIT_EVENT.UI_NOTICE, (data) => {
+          if (!active || !isMyTurn(data)) return;
+          if (String(data?.code ?? "").startsWith("STT_")) handlers.onError?.(VOICE_ERROR.RECOGNITION_FAILED);
         })
       );
 
       try {
-        const res = await api.startSpeech();
+        let res;
+        try {
+          res = await api.startSpeech();
+        } catch (e) {
+          // 409 AUDIO_BUSY: 이전 녹음이 아직 열려 있음(다시 말하기·창을 닫았다 다시 연 경우) → 버리고 처음부터
+          if (e?.code !== "AUDIO_BUSY" || !api.restartSpeech) throw e;
+          // 녹음이 아니라 처리 중이라 다시 말하기도 안 되면 원래 오류(AUDIO_BUSY)를 보여준다
+          res = await api.restartSpeech().catch(() => {
+            throw e;
+          });
+        }
         turnId = res.turnId;
         return res;
       } catch (e) {
