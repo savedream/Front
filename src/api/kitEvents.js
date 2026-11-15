@@ -13,6 +13,12 @@ import { KIT_API_CONFIG } from "./kitConfig";
 export const KIT_EVENT = {
   SPEECH_STATE: "speech.state", // 말하기 상태 변화
   SPEECH_FINAL: "speech.final", // 인식 문장 (말이 끝난 뒤)
+  GUIDE_SAY: "guide.say", // 키트가 읽는 안내 문장
+  DEVICE_STATE: "device.state", // 메트로놈·구조신호 상태 변화
+  SESSION_UPDATED: "session.updated", // 세션 변화 (새 세션이면 session_id 포함)
+  UI_NOTICE: "ui.notice", // 소리 없이 화면에만 띄우는 알림 {code, template_id, text}
+  STATUS_CHANGED: "status.changed", // 기기 상태 일부 변화 (storage.unsaved_records 등)
+  RECORD_SAVE_FAILED: "record.save_failed", // 처치 기록 저장 실패 {unsaved, message}
 };
 
 const RECONNECT_MS = 2000;
@@ -36,6 +42,11 @@ export function parseSseBlock(block) {
     data = JSON.parse(raw);
   } catch (e) {
     // JSON 이 아니면 문자열 그대로 전달
+  }
+  // 백엔드는 event: 줄 없이 봉투 {type, seq, turn_id, at, data} 로 보낸다 → type 으로 가르고 data 에 turn_id·seq·at 을 붙인다
+  if (event === "message" && data && typeof data === "object" && typeof data.type === "string") {
+    const inner = data.data && typeof data.data === "object" ? data.data : {};
+    return { event: data.type, data: { ...inner, turn_id: data.turn_id ?? null, seq: data.seq, at: data.at } };
   }
   return { event, data };
 }

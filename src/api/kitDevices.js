@@ -51,7 +51,6 @@ export const toMs = (iso) => {
 /* ---------------------------------------------------------------- 장치 목록 */
 
 const META = {
-  gps: { name: "GPS", requiredFor: ["현재 위치 좌표"] },
   mic: { name: "마이크", requiredFor: ["음성 입력", "말하기"] },
   speaker: { name: "스피커", requiredFor: ["음성 안내", "구조신호"] },
   aiModel: { name: "AI 응급 모델", requiredFor: ["음성 상황 해석"] },
@@ -79,19 +78,13 @@ function device(id, ok, detail, statusOverride) {
   };
 }
 
-/** 백엔드 devices 응답 → { checkedAt, devices: Device[] } (id: gps | mic | speaker | aiModel | manualData) */
+/** 백엔드 devices 응답 → { checkedAt, devices: Device[] } (id: mic | speaker | aiModel | manualData) */
 export function toDeviceList(data) {
-  const gps = data.gps ?? {};
   const mic = data.microphone ?? {};
   const speaker = data.speaker ?? {};
   const llm = data.models?.llm ?? {};
   const manual = data.manual_db ?? {};
 
-  const gpsDetail = !gps.connected
-    ? "연결 끊김"
-    : gps.fix
-      ? `위치 정확도 ${gps.accuracy_m ?? "-"}m`
-      : "위치 찾는 중";
   const llmOk = !!llm.loaded;
   const llmDetail = llmOk
     ? `모델 ${llm.version ?? ""}${llm.warmed ? "" : " · 준비 중"}`.trim()
@@ -100,8 +93,10 @@ export function toDeviceList(data) {
   return {
     checkedAt: Date.now(),
     devices: [
-      device("gps", !!gps.connected, gpsDetail),
-      device("mic", !!mic.connected, mic.connected ? MIC_DETAIL[mic.state] ?? "음성 입력 준비됨" : MIC_DETAIL.unavailable),
+      {
+        ...device("mic", !!mic.connected, mic.connected ? MIC_DETAIL[mic.state] ?? "음성 입력 준비됨" : MIC_DETAIL.unavailable),
+        micState: mic.state ?? null, // armed | capturing | processing | paused | blocked | unavailable (상시 듣기 토글)
+      },
       device(
         "speaker",
         !!speaker.connected,
@@ -124,10 +119,13 @@ export function toDeviceList(data) {
  * 가짜 모드에서는 battery: null 이라 null 을 돌려준다 (화면은 "확인 불가").
  * ⚠ 실제 키트의 battery 칸 이름은 백엔드에 아직 없어서 level/percent, charging, remaining_min 을 가정했다.
  */
+// 배터리 칸이 백엔드에 없어(가짜 모드 battery: null) 100% 로 고정해 보여준다
+export const FIXED_BATTERY = { available: true, level: 100, charging: false, estimatedMinutes: 0, low: false };
+
 export function toBattery(battery) {
-  if (!battery || typeof battery !== "object") return null;
+  if (!battery || typeof battery !== "object") return FIXED_BATTERY;
   const level = battery.level ?? battery.percent ?? null;
-  if (level === null) return null;
+  if (level === null) return FIXED_BATTERY;
   const minutes = battery.remaining_min ?? battery.estimated_minutes ?? null;
   return {
     available: true,

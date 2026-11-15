@@ -24,7 +24,7 @@ export function ShutdownScreen() {
       <Ionicons name="power" size={s(40)} color="#5B6B7F" />
       <Text style={styles.offText}>전원이 종료되었어요</Text>
       <Pressable style={styles.onButton} onPress={powerOn} accessibilityRole="button">
-        <Text style={styles.onText}>다시 켜기 (시연)</Text>
+        <Text style={styles.onText}>실행</Text>
       </Pressable>
     </View>
   );

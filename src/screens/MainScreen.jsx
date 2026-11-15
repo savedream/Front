@@ -5,13 +5,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import StatusCluster from "../components/common/StatusCluster";
 import FeatureButton from "../components/main/FeatureButton";
-import GpsCard from "../components/main/GpsCard";
 import TimerCard from "../components/main/TimerCard";
 import ChatPanel from "../components/main/ChatPanel";
 import TimerDetailModal from "../components/main/TimerDetailModal";
 // 담당 파트 컴포넌트 (현재 스텁)
 import ManualShortcutCard from "../components/manual/ManualShortcutCard";
 import VoiceInputModal from "../components/voice/VoiceInputModal";
+import { KIT_API_CONFIG } from "../api/kitConfig";
 import { useKit } from "../state/KitContext";
 import { colors, s } from "../theme";
 
@@ -70,6 +70,8 @@ export default function MainScreen({ navigation }) {
   // 말하기 모달에서 확정된 문장 (말하기 파트가 발화 해석을 붙이면 여기서 이어서 처리)
   const handleVoiceSubmit = (text) => {
     if (!text?.trim()) return;
+    // 실제 API 는 speech.final 이벤트로 KitContext 가 대화창에 올린다 (여기서 또 올리면 두 번 보임)
+    if (!KIT_API_CONFIG.USE_MOCK) return;
     addLog({ kind: "user_speech", text: text.trim() });
   };
 
@@ -144,7 +146,6 @@ export default function MainScreen({ navigation }) {
             </View>
             <View style={styles.infoCol}>
               <View style={styles.statusRow}>
-                <GpsCard />
                 <StatusCluster />
               </View>
               <ManualShortcutCard onOpenList={openList} onOpenManual={openManual} />
@@ -172,6 +173,6 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", gap: s(18), height: "38%" },
   timerCol: { flex: 0.95 },
   infoCol: { flex: 1.15, gap: s(10) },
-  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: s(10) },
+  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: s(10) },
   chatRow: { flex: 1 },
 });

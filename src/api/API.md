@@ -22,7 +22,6 @@
 | 배터리 | GET /battery | `{ available, level, charging, estimatedMinutes, low }` |
 | 장치 목록 | GET /devices | `{ checkedAt, devices: Device[] }` |
 | 장치 재연결 | POST /devices/:id/reconnect | `Device` |
-| GPS | GET /gps | `{ connected, fix, latitude, longitude, accuracyM, receivedAt, lastKnown }` |
 | 타이머 | GET /timer · POST /timer/start · /pause · /resume | `Timer` |
 | 타이머 초기화 | POST /timer/reset `{save:true}` | `Timer` (저장 실패 시 SAVE_FAILED, 초기화 안 함) |
 | 메트로놈 | GET /metronome · POST /metronome/start · /stop | `{ playing, bpm, pausedBy, interrupted, state }` |
@@ -32,7 +31,7 @@
 
 ### 타입
 ```
-Device  = { id: gps|mic|speaker|aiModel|manualData, name, connected, operational,
+Device  = { id: mic|speaker|aiModel|manualData, name, connected, operational,
             status: ok|error|unknown, detail, requiredFor: string[] }
 Timer   = { status: idle|running|paused, startedAt, accumulatedMs, serverTime, segments[] }
           경과 시간 = accumulatedMs + (running ? now - startedAt : 0)

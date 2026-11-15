@@ -3,7 +3,8 @@
  *
  * .env 변수
  *   EXPO_PUBLIC_KIT_HOST           키트 주소
- *   EXPO_PUBLIC_USE_MOCK           true 면 목데이터, false 면 키트 API
+ *   EXPO_PUBLIC_USE_MOCK           true 면 목데이터, false 면 키트 API (말하기)
+ *   EXPO_PUBLIC_MANUAL_USE_MOCK    긴급 매뉴얼 전환 (기본 true: 목데이터 고정)
  *   EXPO_PUBLIC_API_TIMEOUT_MS     요청 시간 제한(ms)
  *
  * 경로: REST = <키트 주소>/api · 이벤트 스트림 = /api/events (SSE) · 정적 파일 = /static/...
@@ -24,6 +25,8 @@ const KIT_HOST = readEnv(process.env.EXPO_PUBLIC_KIT_HOST, "").replace(/\/+$/, "
 export const KIT_API_CONFIG = {
   // 목데이터 사용 여부 (기본 true: .env 에 값이 없으면 목데이터)
   USE_MOCK: readEnv(process.env.EXPO_PUBLIC_USE_MOCK, "true").toLowerCase() !== "false",
+  // 긴급 매뉴얼은 API 연동 대상이 아니라 목데이터로 고정 (.env EXPO_PUBLIC_MANUAL_USE_MOCK=false 일 때만 API)
+  MANUAL_USE_MOCK: readEnv(process.env.EXPO_PUBLIC_MANUAL_USE_MOCK, "true").toLowerCase() !== "false",
   HOST: KIT_HOST,
   BASE_URL: KIT_HOST ? `${KIT_HOST}/api` : "",
   TIMEOUT_MS: Number(readEnv(process.env.EXPO_PUBLIC_API_TIMEOUT_MS, "5000")) || 5000,

@@ -5,10 +5,10 @@ import { Animated } from "react-native";
 // 둥근 화살표, 꺼짐 #E4E4E4 · 켜짐 = 해당 매뉴얼(페이지) 색상(iconColor)
 const ARROW_SIZE = 80;
 const ARROW_BASE_COLOR = "#E4E4E4";
-const LIGHT_ON_MS = 350; // 불이 들어오는 시간
-const LIGHT_OFF_MS = 450; // 원래 색으로 돌아가는 시간
-const LIGHT_HOLD_MS = 1300; // 불이 켜진 상태로 유지되는 시간 (1.3초)
-const LOOP_PAUSE_MS = 900; // 한 바퀴 끝난 뒤 쉬는 시간
+const LIGHT_ON_MS = 250; // 불이 들어오는 시간
+const LIGHT_OFF_MS = 350; // 원래 색으로 돌아가는 시간
+const LIGHT_HOLD_MS = 900; // 불이 켜진 상태로 유지되는 시간 (0.9초)
+const LOOP_PAUSE_MS = 700; // 한 바퀴 끝난 뒤 쉬는 시간
 
 // 화살표 하나의 색상만 회색 ↔ 매뉴얼 색으로 바뀜
 // (아이콘 컴포넌트는 Animated 색상 업데이트를 지원하지 않아 같은 글리프를 Animated.Text로 직접 렌더링)

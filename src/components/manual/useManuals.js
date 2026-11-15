@@ -9,8 +9,8 @@ import { getManualTheme } from "./manualTheme";
 /**
  * 매뉴얼 데이터 불러오기 (목록 · 보기용 카드)
  *
- * - .env EXPO_PUBLIC_USE_MOCK=true  → mocks/manualMockData.js (서버 응답 형식) 를 API 와 같은 변환 함수로 읽는다
- * - .env EXPO_PUBLIC_USE_MOCK=false → GET /api/manuals, GET /api/manuals/{manual_id}
+ * - .env EXPO_PUBLIC_MANUAL_USE_MOCK=true (기본)  → mocks/manualMockData.js (서버 응답 형식) 를 API 와 같은 변환 함수로 읽는다
+ * - .env EXPO_PUBLIC_MANUAL_USE_MOCK=false → GET /api/manuals, GET /api/manuals/{manual_id}
  * - 명세: 목록은 바뀌지 않으므로 한 번만 불러 캐시한다. (보기용 카드도 같은 방식으로 캐시)
  *
  * 화면용 모델 (기존 화면 컴포넌트가 쓰던 이름 유지)
@@ -80,7 +80,7 @@ const detailCache = new Map();
 /** 캐시(또는 목데이터)에 있으면 바로 돌려준다. 없으면 null → 불러와야 함 */
 export function peekManualList() {
   if (listCache) return listCache;
-  if (KIT_API_CONFIG.USE_MOCK) {
+  if (KIT_API_CONFIG.MANUAL_USE_MOCK) {
     listCache = mockManualList().map(toScreenManual);
     return listCache;
   }
@@ -89,14 +89,14 @@ export function peekManualList() {
 
 export async function loadManualList({ force = false } = {}) {
   if (listCache && !force) return listCache;
-  const rows = KIT_API_CONFIG.USE_MOCK ? mockManualList() : await manualApi.getManuals();
+  const rows = KIT_API_CONFIG.MANUAL_USE_MOCK ? mockManualList() : await manualApi.getManuals();
   listCache = rows.map(toScreenManual);
   return listCache;
 }
 
 export function peekManual(manualId) {
   if (detailCache.has(manualId)) return detailCache.get(manualId);
-  if (KIT_API_CONFIG.USE_MOCK) {
+  if (KIT_API_CONFIG.MANUAL_USE_MOCK) {
     try {
       const manual = toScreenManual(mockManual(manualId));
       detailCache.set(manualId, manual);
@@ -110,7 +110,7 @@ export function peekManual(manualId) {
 
 export async function loadManual(manualId, { force = false } = {}) {
   if (detailCache.has(manualId) && !force) return detailCache.get(manualId);
-  const apiManual = KIT_API_CONFIG.USE_MOCK
+  const apiManual = KIT_API_CONFIG.MANUAL_USE_MOCK
     ? mockManual(manualId)
     : await manualApi.getManual(manualId);
   const manual = toScreenManual(apiManual);
@@ -159,7 +159,7 @@ export function useManual(manualId) {
     const cached = peekManual(manualId);
     if (cached) return { manual: cached, loading: false, error: null };
     // 목데이터인데 없으면 바로 404 와 같게 처리
-    if (KIT_API_CONFIG.USE_MOCK) {
+    if (KIT_API_CONFIG.MANUAL_USE_MOCK) {
       return {
         manual: null,
         loading: false,
@@ -186,7 +186,7 @@ export function useManual(manualId) {
 
   useEffect(() => {
     setState(initial());
-    if (validId && !peekManual(manualId) && !KIT_API_CONFIG.USE_MOCK) load();
+    if (validId && !peekManual(manualId) && !KIT_API_CONFIG.MANUAL_USE_MOCK) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manualId]);
 

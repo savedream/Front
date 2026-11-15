@@ -1,7 +1,7 @@
 import { KIT_API_CONFIG } from "./kitConfig";
 
 /**
- * 기기 파트 API 설정 (배터리 · 장치 · GPS · 타이머 · 메트로놈 · 구조신호 · 전원 · 기록)
+ * 기기 파트 API 설정 (배터리 · 장치 · 타이머 · 메트로놈 · 구조신호 · 전원 · 기록)
  *
  * USE_MOCK = true  → src/mocks 의 시연용 목서버가 응답한다 (네트워크 없음).
  * USE_MOCK = false → 백엔드(Back)로 요청한다. 주소는 .env 의 EXPO_PUBLIC_KIT_HOST (예: http://localhost:8000)
