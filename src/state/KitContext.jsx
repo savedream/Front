@@ -11,6 +11,7 @@ import {
 import {
   batteryApi,
   devicesApi,
+  gpsApi,
   logsApi,
   metronomeApi,
   mockControlApi,
@@ -38,6 +39,7 @@ const KitContext = createContext(null);
 
 const POLL_MS = 1500;
 const DEVICE_LABEL = {
+  gps: "GPS",
   mic: "마이크",
   speaker: "스피커",
   aiModel: "AI 응급 모델",
@@ -62,6 +64,8 @@ export function KitProvider({ children }) {
   const [battery, setBattery] = useState(null); // null = 확인 전
   const [batteryError, setBatteryError] = useState(false);
   const [devices, setDevices] = useState({}); // id → Device
+  const [gps, setGps] = useState(null);
+  const [gpsError, setGpsError] = useState(false);
 
   const [timer, setTimer] = useState(INITIAL_TIMER);
   const [clockOffset, setClockOffset] = useState(0); // serverTime - Date.now()
@@ -180,6 +184,13 @@ export function KitProvider({ children }) {
           applyDevices(r.devices);
           if (typeof r.unsavedRecords === "number") setServerUnsaved(r.unsavedRecords);
         }),
+        gpsApi
+          .get()
+          .then((g) => {
+            setGps(g);
+            setGpsError(false);
+          })
+          .catch(() => setGpsError(true)),
       ];
       if (!busyRef.current.metronome) jobs.push(metronomeApi.get().then(setMetronome));
       if (!busyRef.current.rescue) jobs.push(rescueSignalApi.get().then(setRescue));
@@ -518,6 +529,7 @@ export function KitProvider({ children }) {
     setMetronome({ ...INITIAL_SOUND, bpm: 110 });
     setRescue(INITIAL_SOUND);
     setDevices({});
+    setGps(null);
     boot();
   }, [boot]);
 
@@ -527,6 +539,8 @@ export function KitProvider({ children }) {
     battery,
     batteryError,
     devices,
+    gps,
+    gpsError,
     timer,
     clockOffset,
     metronome,

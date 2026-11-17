@@ -7,8 +7,9 @@ import { useKit } from "../state/KitContext";
 import { colors, fonts, s, shadow } from "../theme";
 
 // 장치 추가/삭제: 여기 ORDER·ICON·okLabel·names 와 mocks/mockServer.js 의 DEVICE_META (부저 2026-11-02 제외)
-const ORDER = ["mic", "speaker", "aiModel", "manualData"];
+const ORDER = ["gps", "mic", "speaker", "aiModel", "manualData"];
 const ICON = {
+  gps: "location-outline",
   mic: "mic-outline",
   speaker: "volume-medium-outline",
   aiModel: "shield-checkmark-outline",
@@ -86,7 +87,7 @@ export default function DeviceStatusScreen() {
         <Ionicons name="information-circle-outline" size={s(24)} color={colors.amber} />
         <View style={{ flex: 1 }}>
           <Text style={styles.infoTitle}>출발 전 확인해주세요</Text>
-          <Text style={styles.infoBody}>배터리를 충분히 충전하고 마이크·스피커 연결을 확인해 주세요.</Text>
+          <Text style={styles.infoBody}>배터리를 충분히 충전하고 GPS 권한을 켜두면 더 정확한 안내를 받을 수 있어요.</Text>
         </View>
       </View>
 
@@ -128,7 +129,7 @@ function DeviceRow({ device, busy, onReconnect }) {
   );
 }
 
-const okLabel = (id) => ({ mic: "정상", speaker: "정상", aiModel: "사용 가능", manualData: "최신" })[id] ?? "정상";
+const okLabel = (id) => ({ gps: "연결됨", mic: "정상", speaker: "정상", aiModel: "사용 가능", manualData: "최신" })[id] ?? "정상";
 
 /** 시연용: 장치 끊김 · 저장 실패 · 응답 지연을 재현 (USE_MOCK=true 에서만 보임) */
 function MockPanel({ onChanged }) {
@@ -151,7 +152,7 @@ function MockPanel({ onChanged }) {
     onChanged();
   };
 
-  const names = { mic: "마이크", speaker: "스피커", aiModel: "AI 모델", manualData: "매뉴얼 데이터" };
+  const names = { gps: "GPS", mic: "마이크", speaker: "스피커", aiModel: "AI 모델", manualData: "매뉴얼 데이터" };
 
   return (
     <View style={styles.mock}>

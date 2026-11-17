@@ -12,7 +12,7 @@ src/
   state/KitContext.jsx  전역 상태 + 공개 API(useKit)
   components/
     common/             헤더, 상태바, 대화상자, 알림, 자리표시자
-    main/               메인 화면 카드들 (타이머, 대화창, 기능 버튼)
+    main/               메인 화면 카드들 (타이머, GPS, 대화창, 기능 버튼)
     voice/              [말하기 파트]  VoiceInputModal.jsx (스텁)
     manual/             [긴급 매뉴얼 파트] ManualShortcutCard.jsx (스텁)
   screens/
@@ -59,6 +59,6 @@ src/
 **대화창 버튼 타입 추가** — `MainScreen.jsx` 의 `handleChatAction` switch 에 case 추가.
 
 ## 범위 메모 (2026-11-02)
-- 조명·지도·GPS 제외 (GPS 미구매, 2026-11-16)
+- 조명·지도 제외, GPS 는 좌표만 (GPS 미구매 → 목데이터 37.5818, 127.0101 고정. 백엔드 /api/location 미연동)
 - 부저 제외 → 구조신호는 출력 장치 미지정(`FEATURES.rescue.device: null`)
 - 말하기·긴급 매뉴얼은 담당 팀원 파트 (현재 스텁)

@@ -3,6 +3,7 @@ export { ApiError } from "./client";
 export { systemApi } from "./services/systemApi";
 export { batteryApi } from "./services/batteryApi";
 export { devicesApi } from "./services/devicesApi";
+export { gpsApi } from "./services/gpsApi";
 export { timerApi } from "./services/timerApi";
 export { metronomeApi } from "./services/metronomeApi";
 export { rescueSignalApi } from "./services/rescueSignalApi";
