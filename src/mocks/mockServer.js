@@ -26,23 +26,30 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 // 장치 메타데이터. 장치를 추가/삭제하려면 여기와 screens/DeviceStatusScreen.jsx 의 ORDER 등을 함께 수정한다.
 // (2026-11-02 부저 제외)
 const DEVICE_META = {
+  gps: { name: "GPS", requiredFor: ["현재 위치 좌표"] },
   mic: { name: "마이크", requiredFor: ["음성 입력", "말하기"] },
   speaker: { name: "스피커", requiredFor: ["음성 안내", "메트로놈"] },
   aiModel: { name: "AI 응급 모델", requiredFor: ["음성 상황 해석"] },
   manualData: { name: "매뉴얼 데이터", requiredFor: ["응급 매뉴얼"] },
 };
 
+// GPS 목데이터 좌표 (GPS 모듈 미구매 → 이 좌표로 고정)
+const BASE_LAT = 37.5818;
+const BASE_LNG = 127.0101;
+
 function createDb() {
   const t = now();
   return {
     bootedAt: t,
     devices: {
+      gps: { connected: true, changedAt: t },
       mic: { connected: true, changedAt: t },
       speaker: { connected: true, changedAt: t, volume: 78 },
       aiModel: { connected: true, changedAt: t, lastVerifiedAt: t - 3 * 86400000 },
       manualData: { connected: true, changedAt: t, sizeLabel: "128MB", version: "1.0" },
     },
     battery: { startLevel: 84, startedAt: t, charging: false },
+    gps: { fixAt: t + 2500, lastKnown: null },
     timer: { status: "idle", startedAt: null, accumulatedMs: 0, segments: [] },
     metronome: { playing: false, bpm: 110, interrupted: false, unknown: false },
     rescue: { playing: false, interrupted: false, unknown: false },
@@ -63,6 +70,15 @@ function deviceView(id) {
   const meta = DEVICE_META[id];
   let detail = "";
   switch (id) {
+    case "gps": {
+      const g = gpsView();
+      detail = !d.connected
+        ? "연결 끊김"
+        : g.fix
+          ? `위치 정확도 ${g.accuracyM}m`
+          : "위치 찾는 중";
+      break;
+    }
     case "mic":
       detail = d.connected
         ? db.listening
@@ -107,8 +123,36 @@ function setDeviceConnected(id, connected) {
     db.metronome.playing = false;
     db.metronome.interrupted = true; // 출력 중단 · 연결 오류
   }
+  if (id === "gps") {
+    if (!connected) {
+      const g = gpsView(true);
+      if (g.fix) db.gps.lastKnown = { latitude: g.latitude, longitude: g.longitude, receivedAt: g.receivedAt };
+    } else {
+      db.gps.fixAt = now() + 3000; // 재연결 후 최신 좌표 다시 확보
+    }
+  }
   // 재연결: 메트로놈·구조신호는 자동 재생하지 않는다
   if (connected && id === "speaker") db.metronome.interrupted = false;
+}
+
+/* ---------------------------------------------------------------- GPS */
+
+function gpsView(ignoreConnection = false) {
+  const connected = ignoreConnection || isConnected("gps");
+  const fix = connected && now() >= db.gps.fixAt;
+  if (!fix) {
+    return { connected, fix: false, latitude: null, longitude: null, accuracyM: null, receivedAt: null, lastKnown: db.gps.lastKnown };
+  }
+  // 고정 좌표 (흔들림 없음)
+  return {
+    connected,
+    fix: true,
+    latitude: BASE_LAT,
+    longitude: BASE_LNG,
+    accuracyM: 5,
+    receivedAt: now(),
+    lastKnown: db.gps.lastKnown,
+  };
 }
 
 /* ---------------------------------------------------------------- 배터리 */
@@ -208,7 +252,7 @@ route("POST", "/system/shutdown", () => {
   return { ok: true, at: now() };
 });
 
-// 배터리 / 장치
+// 배터리 / 장치 / GPS
 route("GET", "/battery", () => batteryView());
 route("GET", "/devices", () => ({
   checkedAt: now(),
@@ -223,6 +267,7 @@ route("POST", "/devices/:id/reconnect", async ({ id }) => {
   }
   return deviceView(id);
 });
+route("GET", "/gps", () => gpsView());
 
 // 타이머
 route("GET", "/timer", () => timerView());

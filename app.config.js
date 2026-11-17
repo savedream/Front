@@ -20,6 +20,12 @@ export default {
 
     ios: {
       supportsTablet: true,
+      // 앱 식별자 (Xcode 서명 시 다른 팀과 겹치면 바꿔서 사용)
+      bundleIdentifier: "com.savedream.app",
+    },
+
+    android: {
+      package: "com.savedream.app",
     },
 
     // android: {
