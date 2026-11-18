@@ -142,12 +142,18 @@ export default function MainScreen({ navigation }) {
         {/* 오른쪽 */}
         <View style={styles.right}>
           <View style={styles.topRow}>
-            <View style={styles.timerCol}>
-              <TimerCard onOpenDetail={() => setTimerOpen(true)} />
+            {/* 가운데: 현재 위치(위) · 경과 시간(아래) */}
+            <View style={styles.gpsTimerCol}>
+              <View style={styles.gpsItem}>
+                <GpsCard />
+              </View>
+              <View style={styles.timerItem}>
+                <TimerCard onOpenDetail={() => setTimerOpen(true)} />
+              </View>
             </View>
+            {/* 오른쪽: 배터리·시각·전원 · 응급 매뉴얼 */}
             <View style={styles.infoCol}>
               <View style={styles.statusRow}>
-                <GpsCard />
                 <StatusCluster />
               </View>
               <ManualShortcutCard onOpenList={openList} onOpenManual={openManual} />
@@ -173,8 +179,10 @@ const styles = StyleSheet.create({
   speakItem: { flex: 0.62 },
   right: { flex: 1, gap: s(18) },
   topRow: { flexDirection: "row", gap: s(18), height: "38%" },
-  timerCol: { flex: 0.95 },
-  infoCol: { flex: 1.15, gap: s(10) },
-  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: s(10) },
+  gpsTimerCol: { flex: 1.05, gap: s(12) },
+  gpsItem: { flex: 0.8 },
+  timerItem: { flex: 1.2 },
+  infoCol: { flex: 0.95, gap: s(10) },
+  statusRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: s(10) },
   chatRow: { flex: 1 },
 });
