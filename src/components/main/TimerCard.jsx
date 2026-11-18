@@ -23,19 +23,23 @@ export default function TimerCard({ onOpenDetail }) {
       accessibilityRole="button"
       accessibilityLabel={`경과 시간 ${formatElapsed(elapsed)}, 타이머 상세 열기`}
     >
-      <View style={styles.head}>
-        <Ionicons name="stopwatch-outline" size={s(20)} color={colors.navy} />
-        <Text style={styles.label}>경과 시간</Text>
-        <View style={{ flex: 1 }} />
-        <Text style={styles.detail}>상세</Text>
-        <Ionicons name="chevron-forward" size={s(14)} color={colors.blue} />
+      {/* 왼쪽: 제목(위) · 상태(아래) */}
+      <View style={styles.side}>
+        <View style={styles.head}>
+          <Ionicons name="stopwatch-outline" size={s(20)} color={colors.navy} />
+          <Text style={styles.label}>경과 시간</Text>
+        </View>
+        <View style={styles.capRow}>
+          <View style={[styles.dot, { backgroundColor: cap.color }]} />
+          <Text
+            style={[styles.caption, { color: featureError.timer ? colors.red : colors.textSub }]}
+            numberOfLines={1}
+          >
+            {featureError.timer ?? cap.text}
+          </Text>
+        </View>
       </View>
-      <View style={styles.capRow}>
-        <View style={[styles.dot, { backgroundColor: cap.color }]} />
-        <Text style={[styles.caption, { color: featureError.timer ? colors.red : colors.textSub }]}>
-          {featureError.timer ?? cap.text}
-        </Text>
-      </View>
+      {/* 오른쪽: 경과 시간 */}
       <Text style={[styles.time, timer.status === "paused" && { color: colors.textSub }]} numberOfLines={1} adjustsFontSizeToFit>
         {formatElapsed(elapsed)}
       </Text>
@@ -53,21 +57,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: s(4),
     paddingHorizontal: s(20),
     paddingVertical: s(14),
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: s(12),
     ...shadow,
   },
+  side: { flexShrink: 1, justifyContent: "space-between" },
   head: { flexDirection: "row", alignItems: "center", gap: s(6) },
   label: { fontFamily: fonts.bold, fontSize: s(14), color: colors.navy },
-  detail: { fontFamily: fonts.semibold, fontSize: s(12), color: colors.blue },
-  capRow: { flexDirection: "row", alignItems: "center", gap: s(6), marginTop: s(10) },
+  capRow: { flexDirection: "row", alignItems: "center", gap: s(6) },
   dot: { width: s(6), height: s(6), borderRadius: s(3) },
-  caption: { fontFamily: fonts.regular, fontSize: s(12) },
+  caption: { fontFamily: fonts.regular, fontSize: s(11) },
   time: {
+    flex: 1,
     fontFamily: fonts.bold,
-    fontSize: s(72),
+    fontSize: s(44),
     color: colors.navyDeep,
-    textAlign: "center",
-    marginTop: "auto",
-    marginBottom: "auto",
+    textAlign: "right",
+    alignSelf: "center",
     fontVariant: ["tabular-nums"],
   },
 });

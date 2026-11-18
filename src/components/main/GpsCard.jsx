@@ -52,34 +52,38 @@ export default function GpsCard() {
           <Text style={[styles.chipText, { color: chip.fg }]}>{chip.text}</Text>
         </View>
       </View>
-      <Text style={[styles.coord, mainMuted && { color: colors.textSub }]} numberOfLines={1} adjustsFontSizeToFit>
-        {main}
-      </Text>
-      {!!sub && (
-        <Text style={styles.sub} numberOfLines={1}>
-          {sub}
+      <View style={styles.coordBox}>
+        <Text style={[styles.coord, mainMuted && { color: colors.textSub }]} numberOfLines={1} adjustsFontSizeToFit>
+          {main}
         </Text>
-      )}
+        {!!sub && (
+          <Text style={styles.sub} numberOfLines={1}>
+            {sub}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: s(16),
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: s(14),
-    paddingVertical: s(8),
     flex: 1,
     minWidth: 0,
+    backgroundColor: colors.surface,
+    borderRadius: s(20),
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderBottomWidth: s(4),
+    paddingHorizontal: s(20),
+    paddingVertical: s(14),
     ...shadow,
   },
   top: { flexDirection: "row", alignItems: "center", gap: s(6) },
   label: { fontFamily: fonts.bold, fontSize: s(14), color: colors.navy, flex: 1 },
-  chip: { paddingHorizontal: s(8), paddingVertical: s(2), borderRadius: s(8) },
-  chipText: { fontFamily: fonts.semibold, fontSize: s(11) },
-  coord: { fontFamily: fonts.medium, fontSize: s(12), color: colors.navy, marginTop: s(2) },
-  sub: { fontFamily: fonts.regular, fontSize: s(10), color: colors.amber },
+  chip: { paddingHorizontal: s(10), paddingVertical: s(4), borderRadius: s(12) },
+  chipText: { fontFamily: fonts.semibold, fontSize: s(12) },
+  coordBox: { flex: 1, justifyContent: "center", alignItems: "center" },
+  coord: { fontFamily: fonts.regular, fontSize: s(24), color: colors.navy, textAlign: "center" },
+  sub: { fontFamily: fonts.regular, fontSize: s(11), color: colors.amber, marginTop: s(4), textAlign: "center" },
 });
